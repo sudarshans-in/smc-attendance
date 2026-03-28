@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTabParamList } from '../types';
 import { Colors } from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,7 @@ const TAB_ICONS: Record<string, { active: IconName; inactive: IconName }> = {
 
 export default function AppNavigator() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -32,8 +34,8 @@ export default function AppNavigator() {
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.outlineVariant,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 4,
           elevation: 8,
         },
