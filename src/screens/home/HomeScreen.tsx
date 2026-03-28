@@ -141,17 +141,21 @@ export default function HomeScreen({ navigation }: Props) {
   });
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
         <Appbar.Content
-          title={Strings.greeting(user?.name ?? '')}
-          titleStyle={styles.appbarTitle}
+          title={
+            <View>
+              <Text style={styles.appbarTitle}>{Strings.appName}</Text>
+              <Text style={styles.appbarSubtitle}>{Strings.greeting(user?.name ?? '')}</Text>
+            </View>
+          }
         />
         <Appbar.Action
           icon="logout"
           onPress={handleLogout}
           accessibilityLabel={Strings.logoutApp}
-          color={Colors.onSurface}
+          color={Colors.onPrimary}
         />
       </Appbar.Header>
 
@@ -216,13 +220,16 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   appbar: {
-    backgroundColor: Colors.surface,
-    elevation: 2,
+    backgroundColor: Colors.primary,
   },
   appbarTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.onSurface,
+    color: Colors.onPrimary,
+  },
+  appbarSubtitle: {
+    fontSize: 13,
+    color: Colors.primaryContainer,
   },
   scroll: { flex: 1 },
   content: {

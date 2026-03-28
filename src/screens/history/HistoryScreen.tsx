@@ -138,7 +138,7 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
         <Appbar.Content title={Strings.historyTitle} titleStyle={styles.appbarTitle} />
       </Appbar.Header>

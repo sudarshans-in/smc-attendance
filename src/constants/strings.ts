@@ -61,7 +61,8 @@ export const Strings = {
   uploadSuccess: 'Photo uploaded successfully!',
   uploadError: 'Failed to upload photo. Please try again.',
   cameraPermissionDenied: 'Camera permission is required to take photos.',
-  galleryPermissionDenied: 'Gallery permission is required to select photos.',
+  uploadHint: 'Take a photo, then tap Submit',
+  locationRequiredHint: 'Location required. Please allow GPS and try again.',
 
   // History
   historyTitle: 'History',

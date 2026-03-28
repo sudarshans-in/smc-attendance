@@ -80,7 +80,7 @@ export default function AdminScreen() {
   const presentCount = summaries.filter((s) => !!s.todayAttendance?.loginTime).length;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
         <Appbar.Content title={Strings.adminTitle} titleStyle={styles.appbarTitle} />
       </Appbar.Header>
