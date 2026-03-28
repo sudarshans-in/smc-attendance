@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -32,7 +32,7 @@ export default function App() {
       <PaperProvider theme={theme}>
         <NavigationContainer>
           <AuthProvider>
-            <StatusBar style="light" backgroundColor={Colors.primaryDark} />
+            <StatusBar barStyle="light-content" backgroundColor={Colors.primaryDark} />
             <RootNavigator />
           </AuthProvider>
         </NavigationContainer>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,10 +6,14 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
-import { Text, Button, TextInput, Snackbar, Appbar, Chip } from 'react-native-paper';
+import { Text, Button, TextInput, Snackbar, Appbar, Chip, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { sanitizeNotes } from '../../utils/sanitize';
 import { useAppContext } from '../../context/AppContext';
@@ -18,17 +22,33 @@ import { useLocation } from '../../hooks/useLocation';
 import { api } from '../../api';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
+import PhotoCard from '../../components/PhotoCard';
 
 export default function UploadScreen() {
   const { user } = useAuth();
-  const { addPhoto } = useAppContext();
-  const { takePicture, pickFromGallery } = useCamera();
+  const { todayPhotos, addPhoto, setTodayPhotos } = useAppContext();
+  const { takePicture } = useCamera();
   const { coords, loading: locationLoading, error: locationError, fetchLocation, reset: resetLocation } = useLocation();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      (async () => {
+        try {
+          const photos = await api.getTodayPhotos(user.id);
+          setTodayPhotos(photos);
+        } catch {
+          // silent fail
+        }
+      })();
+    }, [user])
+  );
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState('');
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   const canSubmit = !!imageUri && !!coords && !submitting && !locationLoading;
 
@@ -40,11 +60,6 @@ export default function UploadScreen() {
 
   const handleCamera = async () => {
     const uri = await takePicture();
-    if (uri) handleImageSelected(uri);
-  };
-
-  const handleGallery = async () => {
-    const uri = await pickFromGallery();
     if (uri) handleImageSelected(uri);
   };
 
@@ -87,7 +102,7 @@ export default function UploadScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
         <Appbar.Content title={Strings.uploadTitle} titleStyle={styles.appbarTitle} />
       </Appbar.Header>
@@ -102,34 +117,19 @@ export default function UploadScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Photo source buttons */}
-          <View style={styles.photoButtons}>
-            <Button
-              mode="contained"
-              onPress={handleCamera}
-              style={[styles.photoButton, { backgroundColor: Colors.primary }]}
-              contentStyle={styles.photoButtonContent}
-              labelStyle={styles.photoButtonLabel}
-              icon="camera"
-              disabled={submitting}
-              accessibilityLabel={Strings.takePhoto}
-            >
-              {Strings.takePhoto}
-            </Button>
-            <View style={styles.buttonGap} />
-            <Button
-              mode="outlined"
-              onPress={handleGallery}
-              style={styles.photoButton}
-              contentStyle={styles.photoButtonContent}
-              labelStyle={styles.photoButtonLabel}
-              icon="image"
-              disabled={submitting}
-              accessibilityLabel={Strings.chooseGallery}
-            >
-              {Strings.chooseGallery}
-            </Button>
-          </View>
+          {/* Camera button */}
+          <Button
+            mode="contained"
+            onPress={handleCamera}
+            style={[styles.cameraButton, { backgroundColor: Colors.primary }]}
+            contentStyle={styles.cameraButtonContent}
+            labelStyle={styles.cameraButtonLabel}
+            icon="camera"
+            disabled={submitting}
+            accessibilityLabel={Strings.takePhoto}
+          >
+            {Strings.takePhoto}
+          </Button>
 
           {/* Image preview */}
           {imageUri ? (
@@ -192,13 +192,39 @@ export default function UploadScreen() {
 
           {!imageUri && (
             <Text variant="bodySmall" style={styles.hint}>
-              Take a photo or choose from gallery, then tap Submit
+              {Strings.uploadHint}
             </Text>
           )}
           {imageUri && !coords && !locationLoading && (
             <Text variant="bodySmall" style={styles.hintError}>
-              Location required. Tap Retry to fetch GPS.
+              {Strings.locationRequiredHint}
             </Text>
+          )}
+
+          {/* Uploaded work photos */}
+          <Divider style={styles.divider} />
+          <View style={styles.photosHeader}>
+            <MaterialCommunityIcons name="camera-outline" size={20} color={Colors.onSurface} />
+            <Text variant="titleSmall" style={styles.photosTitle}>
+              {Strings.tabTodayPhotos}
+            </Text>
+            {todayPhotos.length > 0 && (
+              <Text variant="bodySmall" style={styles.photosCount}>
+                {Strings.photosTodayCount(todayPhotos.length)}
+              </Text>
+            )}
+          </View>
+          {todayPhotos.length === 0 ? (
+            <View style={styles.emptyPhotos}>
+              <MaterialCommunityIcons name="image-off-outline" size={36} color={Colors.outline} />
+              <Text variant="bodyMedium" style={styles.emptyPhotosText}>
+                {Strings.noPhotosToday}
+              </Text>
+            </View>
+          ) : (
+            todayPhotos.map((photo) => (
+              <PhotoCard key={photo.id} photo={photo} onPress={() => setPreviewUri(photo.imageUri)} />
+            ))
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -211,6 +237,28 @@ export default function UploadScreen() {
       >
         {snackbar}
       </Snackbar>
+
+      {/* Fullscreen photo preview modal */}
+      <Modal
+        visible={!!previewUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewUri(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setPreviewUri(null)}
+        >
+          {previewUri && (
+            <Image
+              source={{ uri: previewUri }}
+              style={styles.modalImage}
+              resizeMode="contain"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -222,26 +270,21 @@ const styles = StyleSheet.create({
   appbarTitle: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
-  photoButtons: {
-    flexDirection: 'row',
+  cameraButton: {
+    borderRadius: 8,
     marginBottom: 16,
   },
-  photoButton: {
-    flex: 1,
-    borderRadius: 8,
-  },
-  photoButtonContent: { height: 56 },
-  photoButtonLabel: { fontSize: 15, fontWeight: '700' },
-  buttonGap: { width: 12 },
+  cameraButtonContent: { height: 56 },
+  cameraButtonLabel: { fontSize: 16, fontWeight: '700' },
   previewContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
     marginBottom: 16,
     backgroundColor: Colors.surfaceVariant,
+    borderRadius: 12,
   },
   preview: {
     width: '100%',
     height: 220,
+    borderRadius: 12,
   },
   locationChip: {
     margin: 8,
@@ -281,5 +324,42 @@ const styles = StyleSheet.create({
     color: Colors.error,
     textAlign: 'center',
     marginTop: 4,
+  },
+  divider: {
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  photosHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  photosTitle: {
+    flex: 1,
+    fontWeight: '700',
+    color: Colors.onSurface,
+  },
+  photosCount: {
+    color: Colors.onSurfaceVariant,
+  },
+  emptyPhotos: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  emptyPhotosText: {
+    color: Colors.onSurfaceVariant,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.8,
   },
 });

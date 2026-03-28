@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import * as Keychain from 'react-native-keychain';
 import { User } from '../types';
 import { clearToken } from '../api/client';
 
-// User session stored in hardware-backed encrypted storage (iOS Keychain / Android Keystore)
+// User session stored in hardware-backed encrypted storage (Android Keystore)
 // Never use AsyncStorage for session data — it is unencrypted plaintext.
-const SESSION_KEY = 'safai_auth_user';
+const SESSION_SERVICE = 'safai_karmachari';
+const SESSION_ACCOUNT = 'auth_user';
 
 interface AuthState {
   user: User | null;
@@ -48,9 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await SecureStore.getItemAsync(SESSION_KEY);
-        if (raw) {
-          dispatch({ type: 'SET_USER', payload: JSON.parse(raw) });
+        const credentials = await Keychain.getGenericPassword({ service: SESSION_SERVICE });
+        if (credentials && credentials.password) {
+          dispatch({ type: 'SET_USER', payload: JSON.parse(credentials.password) });
         } else {
           dispatch({ type: 'SET_LOADING', payload: false });
         }
@@ -61,12 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (user: User) => {
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(user));
+    await Keychain.setGenericPassword(SESSION_ACCOUNT, JSON.stringify(user), { service: SESSION_SERVICE });
     dispatch({ type: 'SET_USER', payload: user });
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync(SESSION_KEY);
+    await Keychain.resetGenericPassword({ service: SESSION_SERVICE });
     await clearToken(); // also wipe the JWT from secure storage
     dispatch({ type: 'LOGOUT' });
   };

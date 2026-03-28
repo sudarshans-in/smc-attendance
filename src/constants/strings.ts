@@ -34,7 +34,9 @@ export const Strings = {
   attendanceComplete: 'Attendance Complete',
   loginTime: 'Check-in Time',
   logoutTime: 'Check-out Time',
+  checkinPhotoPrompt: 'Take a photo to mark attendance',
   fetchingLocation: 'Getting your location...',
+  checkinPhotoRequired: 'A photo is required to mark attendance.',
   locationError: 'Location access is required to mark attendance. Please allow location permission in Settings.',
   uploadPhotoShortcut: 'UPLOAD WORK PHOTO',
   photosTodayCount: (n: number) => `${n} photo${n !== 1 ? 's' : ''} uploaded today`,
@@ -59,7 +61,8 @@ export const Strings = {
   uploadSuccess: 'Photo uploaded successfully!',
   uploadError: 'Failed to upload photo. Please try again.',
   cameraPermissionDenied: 'Camera permission is required to take photos.',
-  galleryPermissionDenied: 'Gallery permission is required to select photos.',
+  uploadHint: 'Take a photo, then tap Submit',
+  locationRequiredHint: 'Location required. Please allow GPS and try again.',
 
   // History
   historyTitle: 'History',

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Text, Button, Card, Chip, ActivityIndicator } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AttendanceRecord, AttendanceStatus } from '../types';
 import { Colors } from '../constants/colors';
 import { Strings } from '../constants/strings';
@@ -42,23 +42,57 @@ export default function AttendanceCard({ attendance, status, onMarkLogin, onMark
         </View>
 
         {(status === 'logged_in' || status === 'completed') && (
-          <View style={styles.timeRow}>
-            <View style={styles.timeBlock}>
-              <MaterialCommunityIcons name="login" size={20} color={Colors.success} />
-              <Text variant="bodySmall" style={styles.timeLabel}>{Strings.loginTime}</Text>
-              <Text variant="titleMedium" style={styles.timeValue}>
-                {formatTime(attendance?.loginTime ?? null)}
-              </Text>
+          <>
+            <View style={styles.photoRow}>
+              <View style={styles.photoBlock}>
+                <Text variant="bodySmall" style={styles.photoLabel}>
+                  <MaterialCommunityIcons name="login" size={12} color={Colors.success} /> Check-in
+                </Text>
+                {attendance?.loginPhotoUri ? (
+                  <Image
+                    source={{ uri: attendance.loginPhotoUri }}
+                    style={styles.attendancePhoto}
+                    accessibilityLabel="Check-in photo"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.attendancePhoto, styles.photoPlaceholder]} />
+                )}
+              </View>
+              <View style={styles.photoBlock}>
+                <Text variant="bodySmall" style={styles.photoLabel}>
+                  <MaterialCommunityIcons name="logout" size={12} color={Colors.warning} /> Check-out
+                </Text>
+                {attendance?.logoutPhotoUri ? (
+                  <Image
+                    source={{ uri: attendance.logoutPhotoUri }}
+                    style={styles.attendancePhoto}
+                    accessibilityLabel="Check-out photo"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.attendancePhoto, styles.photoPlaceholder]} />
+                )}
+              </View>
             </View>
-            <View style={styles.timeDivider} />
-            <View style={styles.timeBlock}>
-              <MaterialCommunityIcons name="logout" size={20} color={Colors.warning} />
-              <Text variant="bodySmall" style={styles.timeLabel}>{Strings.logoutTime}</Text>
-              <Text variant="titleMedium" style={styles.timeValue}>
-                {formatTime(attendance?.logoutTime ?? null)}
-              </Text>
+            <View style={styles.timeRow}>
+              <View style={styles.timeBlock}>
+                <MaterialCommunityIcons name="login" size={20} color={Colors.success} />
+                <Text variant="bodySmall" style={styles.timeLabel}>{Strings.loginTime}</Text>
+                <Text variant="titleMedium" style={styles.timeValue}>
+                  {formatTime(attendance?.loginTime ?? null)}
+                </Text>
+              </View>
+              <View style={styles.timeDivider} />
+              <View style={styles.timeBlock}>
+                <MaterialCommunityIcons name="logout" size={20} color={Colors.warning} />
+                <Text variant="bodySmall" style={styles.timeLabel}>{Strings.logoutTime}</Text>
+                <Text variant="titleMedium" style={styles.timeValue}>
+                  {formatTime(attendance?.logoutTime ?? null)}
+                </Text>
+              </View>
             </View>
-          </View>
+          </>
         )}
 
         {loading && (
@@ -175,5 +209,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  photoBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  photoLabel: {
+    color: Colors.onSurfaceVariant,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  attendancePhoto: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+  },
+  photoPlaceholder: {
+    backgroundColor: Colors.surfaceVariant,
   },
 });

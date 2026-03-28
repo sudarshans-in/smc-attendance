@@ -1,23 +1,25 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import * as Keychain from 'react-native-keychain';
 import { Config } from '../constants/config';
 
-const TOKEN_KEY = 'safai_auth_token';
+const TOKEN_SERVICE = 'safai_karmachari_token';
+const TOKEN_ACCOUNT = 'auth_token';
 
 // ─── Token helpers — stored in hardware-backed encrypted storage ───────────
-// expo-secure-store uses iOS Keychain and Android Keystore.
+// react-native-keychain uses Android Keystore.
 // Never use AsyncStorage for tokens — it is unencrypted plaintext.
 
 export async function saveToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await Keychain.setGenericPassword(TOKEN_ACCOUNT, token, { service: TOKEN_SERVICE });
 }
 
 export async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  const credentials = await Keychain.getGenericPassword({ service: TOKEN_SERVICE });
+  return credentials ? credentials.password : null;
 }
 
 export async function clearToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await Keychain.resetGenericPassword({ service: TOKEN_SERVICE });
 }
 
 // ─── Axios instance ────────────────────────────────────────────────────────

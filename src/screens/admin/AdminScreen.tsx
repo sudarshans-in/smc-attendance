@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, Appbar, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { api } from '../../api';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
@@ -80,7 +80,7 @@ export default function AdminScreen() {
   const presentCount = summaries.filter((s) => !!s.todayAttendance?.loginTime).length;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
         <Appbar.Content title={Strings.adminTitle} titleStyle={styles.appbarTitle} />
       </Appbar.Header>

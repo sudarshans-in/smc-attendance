@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Card, Badge, Appbar, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { useLocation } from '../../hooks/useLocation';
+import { useCamera } from '../../hooks/useCamera';
 import { api } from '../../api';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
@@ -34,37 +36,52 @@ export default function HomeScreen({ navigation }: Props) {
   } = useAppContext();
 
   const { loading: locationLoading, fetchLocation } = useLocation();
+  const { takePicture } = useCamera();
   const [snackbar, setSnackbar] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const status = getAttendanceStatus(todayAttendance);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const [att, photos] = await Promise.all([
-          api.getTodayAttendance(user.id),
-          api.getTodayPhotos(user.id),
-        ]);
-        setTodayAttendance(att);
-        setTodayPhotos(photos);
-      } catch {
-        // silent fail on load
-      }
-    })();
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      (async () => {
+        try {
+          const [att, photos] = await Promise.all([
+            api.getTodayAttendance(user.id),
+            api.getTodayPhotos(user.id),
+          ]);
+          setTodayAttendance(att);
+          setTodayPhotos(photos);
+        } catch {
+          // silent fail on load
+        }
+      })();
+    }, [user])
+  );
 
   const handleMarkLogin = async () => {
     if (!user) return;
+
+    // Step 1: capture check-in photo (required)
+    const imageUri = await takePicture();
+    if (!imageUri) {
+      setSnackbar(Strings.checkinPhotoRequired);
+      return;
+    }
+
+    // Step 2: get GPS location
     setActionLoading(true);
     const coords = await fetchLocation();
     if (!coords) {
+      setSnackbar(Strings.locationError);
       setActionLoading(false);
       return;
     }
+
+    // Step 3: record attendance with photo + location
     try {
-      const record = await api.markAttendanceLogin(user.id, coords);
+      const record = await api.markAttendanceLogin(user.id, coords, imageUri);
       setTodayAttendance(record);
       setSnackbar(Strings.attendanceLoginDone);
     } catch {
@@ -76,14 +93,26 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleMarkLogout = async () => {
     if (!user) return;
+
+    // Step 1: capture check-out photo (required)
+    const imageUri = await takePicture();
+    if (!imageUri) {
+      setSnackbar(Strings.checkinPhotoRequired);
+      return;
+    }
+
+    // Step 2: get GPS location
     setActionLoading(true);
     const coords = await fetchLocation();
     if (!coords) {
+      setSnackbar(Strings.locationError);
       setActionLoading(false);
       return;
     }
+
+    // Step 3: record check-out with photo + location
     try {
-      const record = await api.markAttendanceLogout(user.id, coords);
+      const record = await api.markAttendanceLogout(user.id, coords, imageUri);
       setTodayAttendance(record);
       setSnackbar(Strings.attendanceLogoutDone);
     } catch (err: any) {
@@ -112,17 +141,21 @@ export default function HomeScreen({ navigation }: Props) {
   });
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
         <Appbar.Content
-          title={Strings.greeting(user?.name ?? '')}
-          titleStyle={styles.appbarTitle}
+          title={
+            <View>
+              <Text style={styles.appbarTitle}>{Strings.appName}</Text>
+              <Text style={styles.appbarSubtitle}>{Strings.greeting(user?.name ?? '')}</Text>
+            </View>
+          }
         />
         <Appbar.Action
           icon="logout"
           onPress={handleLogout}
           accessibilityLabel={Strings.logoutApp}
-          color={Colors.onSurface}
+          color={Colors.onPrimary}
         />
       </Appbar.Header>
 
@@ -187,13 +220,16 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   appbar: {
-    backgroundColor: Colors.surface,
-    elevation: 2,
+    backgroundColor: Colors.primary,
   },
   appbarTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.onSurface,
+    color: Colors.onPrimary,
+  },
+  appbarSubtitle: {
+    fontSize: 13,
+    color: Colors.primaryContainer,
   },
   scroll: { flex: 1 },
   content: {

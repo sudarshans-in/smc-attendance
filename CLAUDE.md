@@ -7,10 +7,11 @@ Read this before making any changes.
 
 ## What This App Does
 
-Mobile attendance and work-photo tracking app for **Silchar Municipal Corporation** sanitation workers (SMC Karmacharis). Field workers mark daily GPS attendance and upload work-progress photos. Admins monitor all workers.
+Mobile attendance and work-photo tracking app for **Silchar Municipal Corporation** workers (SMC Karmacharis). Field workers mark daily GPS attendance and upload work-progress photos. Admins monitor all workers.
 
 **App name:** SMC Karmachari
-**Platform:** Android + iOS (Expo managed, no native code)
+**Package name:** `com.smc.karmachari`
+**Platform:** Android only (bare React Native — no Expo, no EAS Build)
 **Current state:** Frontend complete with mock backend. Real API not yet integrated.
 
 ---
@@ -24,13 +25,31 @@ nvm use 20
 # Install dependencies
 npm install
 
-# Start dev server
-npx expo start --clear
+# Terminal 1 — Start Metro bundler
+npx react-native start --reset-cache
 
-# Test on device — install Expo Go app, scan QR code
-# Tunnel mode if phone and Mac are on different networks:
-npx expo start --tunnel
+# Terminal 2 — Build and install on connected Android device
+export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+cd android && ./gradlew installDebug
+
+# OR using react-native CLI
+npx react-native run-android
 ```
+
+### Build APK
+
+```bash
+# Debug APK
+export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+cd android && ./gradlew assembleDebug
+# → android/app/build/outputs/apk/debug/app-debug.apk
+
+# Release APK
+export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+cd android && ./gradlew assembleRelease
+```
+
+> Why `export PATH` before Gradle: Gradle doesn't inherit nvm's Node path. This ensures Gradle uses Node 20, not the system Node 14.
 
 ---
 
@@ -51,26 +70,48 @@ When backend is ready: set `USE_MOCK: false` and update `API_BASE_URL`. Nothing 
 
 | What | Choice | Why |
 |------|--------|-----|
-| Framework | Expo SDK 54 (managed) | No native code, deploys to both platforms |
+| Framework | Bare React Native 0.81 | Full native control, no Expo SDK cycle, local APK builds |
 | Language | TypeScript strict mode | Enforced throughout |
 | UI | React Native Paper v5 (MD3) | Accessible, Material Design, closest to React Bootstrap |
 | Navigation | React Navigation v6 | Stack (auth) + Bottom Tabs (app) |
 | State | React Context + useReducer | Sufficient for scope, zero extra deps |
 | HTTP | Axios + `src/api/client.ts` | Interceptors, auto JWT attachment |
-| Secure Storage | `expo-secure-store` | iOS Keychain / Android Keystore — **never AsyncStorage for secrets** |
+| Secure Storage | `react-native-keychain` | iOS Keychain / Android Keystore — **never AsyncStorage for secrets** |
 | Mock Storage | AsyncStorage | Only for mock API data (not tokens or session) |
-| Icons | `@expo/vector-icons` MaterialCommunityIcons | DO NOT use `react-native-vector-icons` — conflicts with Expo |
+| Icons | `react-native-vector-icons` MaterialCommunityIcons | DO NOT use `@expo/vector-icons` — Expo is removed |
+| GPS | `react-native-geolocation-service` | Android fine location |
+| Camera | `react-native-image-picker` | Camera + gallery with native permission handling |
+| Build | Gradle (local) | No cloud service needed — `./gradlew assembleDebug` |
+
+---
+
+## Expo Migration Summary
+
+This project was migrated from Expo managed workflow to bare React Native. Key replacements:
+
+| Removed (Expo) | Replaced with |
+|---------------|--------------|
+| `expo-location` | `react-native-geolocation-service` |
+| `expo-image-picker` | `react-native-image-picker` |
+| `expo-secure-store` | `react-native-keychain` |
+| `@expo/vector-icons` | `react-native-vector-icons` |
+| `expo-status-bar` | React Native built-in `StatusBar` |
+| `npx expo start` | `npx react-native start` |
+| EAS Build (cloud) | `./gradlew assembleDebug` (local) |
+
+See `doc/migration-analysis.md` for full details.
 
 ---
 
 ## Project Layout — Critical Files
 
 ```
-App.tsx                         Entry point — providers only, no logic
+index.js                        Entry point — gesture-handler must be first import
+App.tsx                         Providers only, no logic
 src/
   api/
     index.ts                    THE switch: USE_MOCK ? mockApi : realApi
-    client.ts                   Axios instance, JWT interceptors, SecureStore token helpers
+    client.ts                   Axios instance, JWT interceptors, Keychain token helpers
     realApi.ts                  Real API functions — identical signatures to mockApi
   mock/
     data.ts                     5 seed workers, 7 days attendance, 3 photos
@@ -80,7 +121,7 @@ src/
     colors.ts                   Brand palette — always use Colors.* never hardcode hex
     strings.ts                  ALL user-facing text — never hardcode strings in JSX
   context/
-    AuthContext.tsx              Auth state + login/logout — stores in expo-secure-store
+    AuthContext.tsx              Auth state + login/logout — stores in react-native-keychain
     AppContext.tsx               Session data (attendance, photos) — reset on logout
   utils/
     sanitize.ts                 sanitizeText, sanitizeNotes, isValidMobile — use before any API call
@@ -98,11 +139,26 @@ src/
     useCamera.ts                Camera/gallery permission + image URI — no base64
   types/
     index.ts                    All interfaces — User, AttendanceRecord, WorkPhoto, etc.
+android/
+  app/build.gradle              App-level Gradle (versionCode, signingConfigs, vector icons font)
+  build.gradle                  Project-level Gradle (buildscript, repositories)
+  settings.gradle               RN Gradle plugin + autolinking config
+  app/src/main/
+    AndroidManifest.xml         Permissions + activity config
+    java/com/smc/karmachari/
+      MainActivity.kt           Standard bare RN activity
+      MainApplication.kt        Standard bare RN application
+    res/values/
+      strings.xml               App name
+      styles.xml                AppTheme
 doc/
-    requirements.md             Functional + non-functional requirements with status
-    architecture.md             Full architecture diagrams and design decisions
-    api-contract.md             REST API spec for backend team
-    security.md                 Security audit findings, fixes, and backend responsibilities
+  fresher-guide.md              Complete guide for new developers ← START HERE if new
+  requirements.md               Functional + non-functional requirements with status
+  architecture.md               Full architecture diagrams and design decisions
+  api-contract.md               REST API spec for backend team
+  security.md                   Security audit findings, fixes, and backend responsibilities
+  migration-analysis.md         Expo → Bare React Native migration log
+  tech-stack-decisions.md       Framework comparison and rationale
 ```
 
 ---
@@ -125,7 +181,7 @@ false → sees 3 tabs: Home, Upload, History
 
 ## Security Rules — Never Break These
 
-1. **Never use AsyncStorage for tokens or user session** — use `expo-secure-store`
+1. **Never use AsyncStorage for tokens or user session** — use `react-native-keychain`
 2. **Always sanitize inputs** before API calls using `src/utils/sanitize.ts`
 3. **Always import from `src/api/index.ts`** — never directly from `mockApi` or `realApi`
 4. **Never hardcode strings in JSX** — use `src/constants/strings.ts`
@@ -149,7 +205,7 @@ false → sees 3 tabs: Home, Upload, History
 
 | Mobile | Name | isAdmin |
 |--------|------|---------|
-| 9876543210 | Raju Das | ✅ Yes |
+| 9876543210 | Raju Das | Yes |
 | 9876543211 | Mina Begum | No |
 | 9876543212 | Suresh Nath | No |
 | 9876543213 | Anita Roy | No |
@@ -164,20 +220,24 @@ Any other 10-digit mobile → redirects to Signup screen.
 | Error | Fix |
 |-------|-----|
 | `toReversed is not a function` | `nvm use 20` — wrong Node version |
-| `SDK mismatch` in Expo Go | Run `npx expo install --fix` then `npx expo start --clear` |
-| `EMFILE: too many open files` | `brew install watchman` |
-| `failed to download` on Android | `npx expo start --tunnel` |
-| `Invariant Violation / runtime not ready` | Check `import 'react-native-gesture-handler'` is first line of App.tsx |
 | `Cannot find module 'node:assert'` | `nvm use 20` — wrong Node version |
-| Package version mismatch warning | `npx expo install --fix` |
+| `SDK location not found` | Create `android/local.properties` with `sdk.dir=<path>` |
+| `No connected devices` | Enable USB Debugging; `adb devices` to verify |
+| `EMFILE: too many open files` | `brew install watchman` |
+| `error: unknown command 'start'` | Use `npx react-native start` not `npx expo start` |
+| `Invariant Violation / runtime not ready` | Check `import 'react-native-gesture-handler'` is first line of `index.js` |
+| Gradle picks up Node 14 | `export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"` before running Gradle |
+| `autolinking.json` missing | Check `settings.gradle` has `autolinkLibrariesFromCommand()` with full npx path |
 
 ---
 
 ## What NOT to Do
 
-- Do not install `react-native-vector-icons` — use `@expo/vector-icons` only
-- Do not use `base64: true` in `launchCameraAsync` — memory crash on old devices
+- Do not install or use `@expo/vector-icons` — use `react-native-vector-icons` only
+- Do not install or use any `expo-*` packages — the project is fully migrated off Expo
+- Do not use `base64: true` in image picker options — memory crash on old devices
 - Do not import directly from `mockApi.ts` in screens
 - Do not add role logic beyond `isAdmin` without updating `doc/requirements.md`
 - Do not commit `.env` files — check `.gitignore`
 - Do not run `npm install` on Node 14 — upgrade to Node 20 first
+- Do not run `npx expo start` — use `npx react-native start`

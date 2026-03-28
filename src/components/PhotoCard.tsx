@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Text, Card } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { WorkPhoto } from '../types';
 import { Colors } from '../constants/colors';
 
 interface Props {
   photo: WorkPhoto;
+  onPress?: () => void;
 }
 
 function formatDateTime(iso: string): string {
@@ -18,9 +19,9 @@ function formatCoords(lat: number, lon: number): string {
   return `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
 }
 
-export default function PhotoCard({ photo }: Props) {
+export default function PhotoCard({ photo, onPress }: Props) {
   return (
-    <Card style={styles.card} elevation={1}>
+    <Card style={styles.card} elevation={1} onPress={onPress}>
       <Image
         source={{ uri: photo.imageUri }}
         style={styles.image}
@@ -58,11 +59,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     backgroundColor: Colors.surface,
-    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: 180,
+    borderRadius: 12,
   },
   content: {
     paddingTop: 10,
