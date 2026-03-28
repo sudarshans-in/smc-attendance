@@ -7,6 +7,7 @@ import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
+import { sanitizeText } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
 
@@ -29,7 +30,11 @@ export default function SignupScreen({ navigation, route }: Props) {
     if (!isValid) return;
     setLoading(true);
     try {
-      const user = await api.signupUser({ mobile, name, address });
+      const user = await api.signupUser({
+        mobile,
+        name: sanitizeText(name),
+        address: sanitizeText(address),
+      });
       await login(user);
       setSnackbar(Strings.signupSuccess);
     } catch {

@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
+import { isValidMobile, sanitizeNumeric } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
 
@@ -19,7 +20,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [snackbar, setSnackbar] = useState('');
   const { login } = useAuth();
 
-  const isValid = mobile.length === 10 && /^\d{10}$/.test(mobile);
+  const isValid = isValidMobile(mobile);
 
   const handleLogin = async () => {
     if (!isValid) {
@@ -68,7 +69,7 @@ export default function LoginScreen({ navigation }: Props) {
             <TextInput
               label={Strings.mobileLabel}
               value={mobile}
-              onChangeText={(t) => setMobile(t.replace(/[^0-9]/g, '').slice(0, 10))}
+              onChangeText={(t) => setMobile(sanitizeNumeric(t).slice(0, 10))}
               keyboardType="numeric"
               maxLength={10}
               mode="outlined"

@@ -13,8 +13,13 @@
  *     requests automatically by the axios request interceptor in client.ts.
  */
 
+import { AxiosError } from 'axios';
 import client, { saveToken } from './client';
 import { User, AttendanceRecord, WorkPhoto, LocationCoords, AdminWorkerSummary } from '../types';
+
+function isNotFound(error: unknown): boolean {
+  return (error as AxiosError)?.response?.status === 404;
+}
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
@@ -23,11 +28,8 @@ export async function loginUser(mobile: string): Promise<User | null> {
     const res = await client.post<{ user: User; token: string }>('/auth/login', { mobile });
     await saveToken(res.data.token);
     return res.data.user;
-  } catch (error: any) {
-    // 404 = user not found → return null (same behaviour as mock)
-    if (error?.message?.includes('not found') || error?.message?.includes('404')) {
-      return null;
-    }
+  } catch (error: unknown) {
+    if (isNotFound(error)) return null;
     throw error;
   }
 }
@@ -64,10 +66,8 @@ export async function getTodayAttendance(userId: string): Promise<AttendanceReco
   try {
     const res = await client.get<AttendanceRecord>(`/attendance/today/${userId}`);
     return res.data;
-  } catch (error: any) {
-    if (error?.message?.includes('not found') || error?.message?.includes('404')) {
-      return null;
-    }
+  } catch (error: unknown) {
+    if (isNotFound(error)) return null;
     throw error;
   }
 }

@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { User } from '../types';
-import { Config } from '../constants/config';
+import { clearToken } from '../api/client';
+
+// User session stored in hardware-backed encrypted storage (iOS Keychain / Android Keystore)
+// Never use AsyncStorage for session data — it is unencrypted plaintext.
+const SESSION_KEY = 'safai_auth_user';
 
 interface AuthState {
   user: User | null;
@@ -44,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(Config.STORAGE_KEYS.AUTH_USER);
+        const raw = await SecureStore.getItemAsync(SESSION_KEY);
         if (raw) {
           dispatch({ type: 'SET_USER', payload: JSON.parse(raw) });
         } else {
@@ -57,12 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (user: User) => {
-    await AsyncStorage.setItem(Config.STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(user));
     dispatch({ type: 'SET_USER', payload: user });
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem(Config.STORAGE_KEYS.AUTH_USER);
+    await SecureStore.deleteItemAsync(SESSION_KEY);
+    await clearToken(); // also wipe the JWT from secure storage
     dispatch({ type: 'LOGOUT' });
   };
 

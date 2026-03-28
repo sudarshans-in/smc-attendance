@@ -11,6 +11,7 @@ import { Text, Button, TextInput, Snackbar, Appbar, Chip } from 'react-native-pa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { sanitizeNotes } from '../../utils/sanitize';
 import { useAppContext } from '../../context/AppContext';
 import { useCamera } from '../../hooks/useCamera';
 import { useLocation } from '../../hooks/useLocation';
@@ -51,7 +52,7 @@ export default function UploadScreen() {
     if (!canSubmit || !user || !coords || !imageUri) return;
     setSubmitting(true);
     try {
-      const photo = await api.uploadWorkPhoto(user.id, imageUri, notes, coords);
+      const photo = await api.uploadWorkPhoto(user.id, imageUri, sanitizeNotes(notes), coords);
       addPhoto(photo);
       setSnackbar(Strings.uploadSuccess);
       setImageUri(null);
