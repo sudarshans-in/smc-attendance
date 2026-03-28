@@ -1,19 +1,14 @@
 import { Config } from '../constants/config';
 import * as mockApi from '../mock/mockApi';
+import * as realApi from './realApi';
 
-// To switch to the real backend, set USE_MOCK = false in src/constants/config.ts
-// and implement the functions below pointing to Config.API_BASE_URL
-const realApi = {
-  loginUser: mockApi.loginUser,
-  signupUser: mockApi.signupUser,
-  markAttendanceLogin: mockApi.markAttendanceLogin,
-  markAttendanceLogout: mockApi.markAttendanceLogout,
-  getTodayAttendance: mockApi.getTodayAttendance,
-  getAttendanceHistory: mockApi.getAttendanceHistory,
-  uploadWorkPhoto: mockApi.uploadWorkPhoto,
-  getTodayPhotos: mockApi.getTodayPhotos,
-  getAllWorkers: mockApi.getAllWorkers,
-  getTodayAllAttendance: mockApi.getTodayAllAttendance,
-};
-
+/**
+ * To switch to the real backend:
+ *   1. Open src/constants/config.ts
+ *   2. Set USE_MOCK: false
+ *   3. Set API_BASE_URL to your backend server URL
+ *
+ * Every function signature is identical between mockApi and realApi,
+ * so all screens continue to work without any changes.
+ */
 export const api = Config.USE_MOCK ? mockApi : realApi;
