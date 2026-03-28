@@ -1,7 +1,8 @@
 # SMC Karmachari — Architecture Document
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Last Updated:** March 2026
+**Breaking change from v1:** Migrated from Expo managed workflow to bare React Native. See `doc/migration-analysis.md`.
 
 ---
 
@@ -9,19 +10,20 @@
 
 | Layer | Technology | Version | Notes |
 |-------|-----------|---------|-------|
-| Framework | Expo (managed workflow) | ~54.0.0 | No native code required |
+| Framework | Bare React Native | 0.81.5 | Full native Android build — no Expo |
 | Language | TypeScript | ^5.3.0 | Strict mode enabled |
 | UI Library | React Native Paper (MD3) | ^5.12.3 | Material Design 3, accessible |
 | Navigation | React Navigation | v6 | Stack + Bottom Tabs |
 | HTTP Client | Axios | ^1.7.2 | Interceptors, JWT auth |
 | State Management | React Context + useReducer | — | No external library |
-| Local Storage | AsyncStorage | 2.2.0 | Session + mock data persistence |
-| Location | expo-location | ~19.0.8 | GPS for attendance/photos |
-| Camera/Gallery | expo-image-picker | ~17.0.10 | Work photo capture |
-| Icons | @expo/vector-icons | ^15.0.3 | MaterialCommunityIcons |
+| Local Storage | AsyncStorage | 2.2.0 | Mock data only — not for secrets |
+| Secure Storage | react-native-keychain | ^9.2.2 | Android Keystore hardware encryption |
+| Location | react-native-geolocation-service | ^5.3.1 | GPS for attendance/photos |
+| Camera/Gallery | react-native-image-picker | ^7.1.2 | Work photo capture |
+| Icons | react-native-vector-icons | ^10.2.0 | MaterialCommunityIcons |
+| Build tool | Gradle | 8.7.3 | Local Android builds — no cloud service |
 | Runtime | React Native | 0.81.5 | |
 | Min Android | API 24 (Android 7.0) | | 2016 onwards |
-| Min iOS | 15.1 | | |
 
 ---
 
@@ -30,7 +32,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     SMC Karmachari App                      │
-│                    (React Native / Expo)                    │
+│                    (Bare React Native)                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │   ┌──────────────┐        ┌──────────────────────────────┐ │
@@ -69,13 +71,50 @@
 
 ---
 
-## 3. Navigation Architecture
+## 3. Native Layer (Android)
+
+```
+android/
+├── build.gradle               Project-level: buildscript, repositories
+├── settings.gradle            React Native Gradle Plugin + autolinking
+├── gradle.properties          Build flags (IS_NEW_ARCHITECTURE_ENABLED, etc.)
+└── app/
+    ├── build.gradle           App-level: compileSdk, versionCode, signingConfigs
+    └── src/main/
+        ├── AndroidManifest.xml   Permissions + activity config
+        ├── java/com/smc/karmachari/
+        │   ├── MainActivity.kt     Standard ReactActivity
+        │   └── MainApplication.kt  Standard ReactApplication (no Expo wrappers)
+        └── res/
+            ├── values/strings.xml  App name
+            ├── values/styles.xml   AppTheme
+            └── mipmap-*/           App icon
+```
+
+### Autolinking
+
+React Native packages declare themselves via `react-native.config.js`. The Gradle plugin reads these during the build via `autolinkLibrariesFromCommand()` in `settings.gradle`:
+
+```groovy
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+  ex.autolinkLibrariesFromCommand(
+    ["/usr/local/bin/npx", "@react-native-community/cli", "config"],
+    rootDir.parentFile
+  )
+}
+```
+
+You never need to manually link packages — `npm install` + rebuild is sufficient.
+
+---
+
+## 4. Navigation Architecture
 
 ```
 RootNavigator (Stack)
 │
 ├── [isLoading = true]
-│       └── LoadingOverlay  ← reads AsyncStorage on cold start
+│       └── LoadingOverlay  ← reads Keychain on cold start
 │
 ├── [isAuthenticated = false]
 │       └── AuthNavigator (Stack, no header)
@@ -93,16 +132,16 @@ RootNavigator (Stack)
 
 ---
 
-## 4. State Management
+## 5. State Management
 
-### 4.1 AuthContext
+### 5.1 AuthContext
 
-Manages authentication lifecycle. Persists to AsyncStorage key `@safai_auth_user`.
+Manages authentication lifecycle. Persists session to react-native-keychain.
 
 ```
 AuthState
 ├── user: User | null
-├── isLoading: boolean        ← true during cold-start AsyncStorage read
+├── isLoading: boolean        ← true during cold-start Keychain read
 └── isAuthenticated: boolean
 
 AuthActions
@@ -111,11 +150,15 @@ AuthActions
 └── SET_LOADING → toggle isLoading
 
 Exposed functions
-├── login(user: User)   → saves to AsyncStorage, dispatches SET_USER
-└── logout()            → removes from AsyncStorage, dispatches LOGOUT
+├── login(user: User)   → saves to Keychain, dispatches SET_USER
+└── logout()            → removes from Keychain, dispatches LOGOUT
 ```
 
-### 4.2 AppContext
+**Keychain storage:** Uses `react-native-keychain` with:
+- `service: 'safai_karmachari'` for user session
+- `service: 'safai_karmachari_token'` for JWT token
+
+### 5.2 AppContext
 
 Manages in-session data for the authenticated worker. Reset on logout (AppProvider unmounts).
 
@@ -125,20 +168,13 @@ AppState
 ├── todayPhotos: WorkPhoto[]
 ├── attendanceHistory: AttendanceRecord[]
 └── isRefreshing: boolean
-
-AppActions
-├── SET_TODAY_ATTENDANCE  → replace today's attendance record
-├── ADD_PHOTO             → prepend new photo to todayPhotos
-├── SET_TODAY_PHOTOS      → replace entire photos list (on refresh)
-├── SET_HISTORY           → replace attendance history list
-└── SET_REFRESHING        → toggle pull-to-refresh indicator
 ```
 
 ---
 
-## 5. API Layer Architecture
+## 6. API Layer Architecture
 
-### 5.1 Switch Mechanism
+### 6.1 Switch Mechanism
 
 ```
 src/api/index.ts
@@ -153,9 +189,7 @@ src/api/index.ts
                     API_BASE_URL: 'https://...'
 ```
 
-All screens import only `api` from `src/api/index.ts`. Neither mockApi nor realApi is ever imported directly in UI code.
-
-### 5.2 Real API Client (client.ts)
+### 6.2 Real API Client (client.ts)
 
 ```
 axios instance
@@ -164,7 +198,7 @@ axios instance
 ├── headers: Content-Type: application/json
 │
 ├── Request Interceptor
-│       └── Reads token from AsyncStorage (@safai_auth_token)
+│       └── Reads token from react-native-keychain (service: safai_karmachari_token)
 │           Attaches: Authorization: Bearer <token>
 │
 └── Response Interceptor
@@ -175,14 +209,13 @@ axios instance
         └── Network error → throw "Check internet connection"
 ```
 
-### 5.3 Mock API (mockApi.ts)
+### 6.3 Mock API (mockApi.ts)
 
 ```
 AsyncStorage Keys
 ├── @safai_registered_users    ← User[] (seeded + newly registered)
 ├── @safai_attendance_records  ← AttendanceRecord[] (seeded + new)
-├── @safai_work_photos         ← WorkPhoto[] (seeded + uploaded)
-└── @safai_auth_user           ← logged-in User (managed by AuthContext)
+└── @safai_work_photos         ← WorkPhoto[] (seeded + uploaded)
 
 Seed Data (first launch only)
 ├── 5 workers (w001–w005), one admin (w001)
@@ -194,7 +227,7 @@ Mock delay: 300–800ms (configurable in Config)
 
 ---
 
-## 6. Data Models
+## 7. Data Models
 
 ```
 User
@@ -230,7 +263,7 @@ LocationCoords
 
 ---
 
-## 7. Screen Inventory
+## 8. Screen Inventory
 
 | Screen | File | Role | Key Dependencies |
 |--------|------|------|-----------------|
@@ -243,23 +276,11 @@ LocationCoords
 
 ---
 
-## 8. Reusable Components
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| AttendanceCard | components/AttendanceCard.tsx | 3-state card (not started / logged in / complete) |
-| PhotoCard | components/PhotoCard.tsx | Image + time + notes + coords |
-| WorkerRow | components/WorkerRow.tsx | Worker name, mobile, optional attendance badge |
-| StatusBadge | components/StatusBadge.tsx | Present / Absent chip |
-| LoadingOverlay | components/LoadingOverlay.tsx | Full-screen spinner with message |
-
----
-
 ## 9. Custom Hooks
 
 | Hook | File | Purpose |
 |------|------|---------|
-| useLocation | hooks/useLocation.ts | Requests GPS permission, fetches coords, handles all error states |
+| useLocation | hooks/useLocation.ts | Requests GPS permission via PermissionsAndroid, fetches coords |
 | useCamera | hooks/useCamera.ts | Requests camera/gallery permission, returns image URI |
 | useAuth | context/AuthContext.tsx | Access auth state and login/logout functions |
 | useAppContext | context/AppContext.tsx | Access and update session data |
@@ -270,44 +291,37 @@ LocationCoords
 
 ```
 mobile-attendance/
-├── App.tsx                   ← Entry point, providers setup
-├── app.json                  ← Expo config, permissions, bundle IDs
+├── index.js                  ← Entry point (gesture-handler must be first import)
+├── App.tsx                   ← Providers setup only
+├── app.json                  ← App name, package name, version
 ├── package.json
 ├── babel.config.js
+├── metro.config.js
 ├── tsconfig.json
-├── assets/                   ← icon.png, splash.png, adaptive-icon.png
-├── doc/                      ← Design and requirements documentation
+├── assets/                   ← icon.png, adaptive-icon.png
+├── android/                  ← Native Android project
+│   ├── build.gradle
+│   ├── settings.gradle
+│   ├── gradle.properties
+│   └── app/
+│       ├── build.gradle
+│       └── src/main/
+│           ├── AndroidManifest.xml
+│           ├── java/com/smc/karmachari/
+│           │   ├── MainActivity.kt
+│           │   └── MainApplication.kt
+│           └── res/
+├── doc/                      ← All documentation
 └── src/
     ├── api/
-    │   ├── index.ts           ← USE_MOCK switch
-    │   ├── client.ts          ← Axios instance, interceptors, token management
-    │   └── realApi.ts         ← Real backend API functions
     ├── constants/
-    │   ├── colors.ts          ← Brand palette
-    │   ├── strings.ts         ← All UI strings (multilingual-ready)
-    │   └── config.ts          ← USE_MOCK flag, API_BASE_URL, storage keys
     ├── context/
-    │   ├── AuthContext.tsx
-    │   └── AppContext.tsx
     ├── hooks/
-    │   ├── useLocation.ts
-    │   └── useCamera.ts
     ├── mock/
-    │   ├── data.ts            ← Seed workers, attendance, photos
-    │   └── mockApi.ts         ← AsyncStorage-backed mock functions
     ├── navigation/
-    │   ├── RootNavigator.tsx
-    │   ├── AuthNavigator.tsx
-    │   └── AppNavigator.tsx
     ├── screens/
-    │   ├── auth/              ← LoginScreen, SignupScreen
-    │   ├── home/              ← HomeScreen
-    │   ├── upload/            ← UploadScreen
-    │   ├── history/           ← HistoryScreen
-    │   └── admin/             ← AdminScreen
-    ├── components/            ← AttendanceCard, PhotoCard, WorkerRow, etc.
+    ├── components/
     └── types/
-        └── index.ts           ← All TypeScript interfaces
 ```
 
 ---
@@ -316,13 +330,15 @@ mobile-attendance/
 
 | Decision | Rationale |
 |----------|-----------|
-| Expo managed workflow | No native code setup; deploys to Android + iOS with one command |
+| Bare React Native (migrated from Expo) | Eliminates EAS Build cloud dependency; APKs built locally with Gradle; no Expo SDK upgrade cycle |
 | React Native Paper | Most accessible MD3 library for RN; matches the spirit of React Bootstrap |
 | Context + useReducer (no Redux) | Sufficient for MVP scope; zero extra dependencies |
 | Mock/Real API switch | Backend team works independently; frontend ships before API is ready |
 | Axios over fetch | Interceptors for auth token injection; better error normalization |
+| react-native-keychain | Hardware-backed encryption (Android Keystore); replaces expo-secure-store |
 | `isAdmin` boolean on User | Simplest role model for two-role system; easy to extend later |
 | Forced light mode | Field workers use phones outdoors in direct sunlight |
 | 56dp minimum button height | Thumb-friendly for workers in gloves or with rough hands |
 | Strings centralized in strings.ts | Enables Bengali/Assamese translation without code changes |
 | File URI (not base64) for photos | Base64 in AsyncStorage causes memory crashes on older devices |
+| Android-only target | All field workers use Android; iOS adds signing cost + macOS build requirement |

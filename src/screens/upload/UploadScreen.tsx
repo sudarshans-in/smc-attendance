@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Text, Button, TextInput, Snackbar, Appbar, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
 import { sanitizeNotes } from '../../utils/sanitize';
 import { useAppContext } from '../../context/AppContext';

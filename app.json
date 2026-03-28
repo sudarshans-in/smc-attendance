@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.silcharmunicipal.safaikarmachari",
+      "bundleIdentifier": "com.smc.karmachari",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is needed to mark attendance at your work site.",
         "NSLocationAlwaysUsageDescription": "Location access is used to verify your work location.",
@@ -30,7 +30,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B5E20"
       },
-      "package": "com.silcharmunicipal.safaikarmachari",
+      "package": "com.smc.karmachari",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -41,20 +41,6 @@
       ],
       "versionCode": 1
     },
-    "plugins": [
-      "expo-location",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow SMC Karmachari to access your photos for work progress uploads.",
-          "cameraPermission": "Allow SMC Karmachari to access your camera for work progress photos."
-        }
-      ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
-      }
-    }
+    "extra": {}
   }
 }

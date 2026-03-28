@@ -1,8 +1,9 @@
 # Tech Stack Decisions — SMC Karmachari
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Last Updated:** March 2026
 **Scope:** Mobile framework selection, trade-offs, and future migration paths
+**Note:** The project has been migrated from Expo managed workflow to bare React Native. This document preserves the original analysis. See `doc/migration-analysis.md` for the full change log.
 
 ---
 
@@ -185,26 +186,17 @@ PWA works well for content apps and supervisor dashboards (read-only, desktop-fi
 
 ## 8. Future Migration Paths
 
-### Path A — Eject to Bare React Native
+### Path A — Eject to Bare React Native ✅ COMPLETED (March 2026)
 
-**When to do it:**
-- You need a native SDK that has no Expo equivalent (e.g. custom BLE hardware, NFC, advanced biometrics beyond Face ID)
-- APK size (~60 MB) becomes a real device storage problem on very old phones
-- You need custom Gradle build flavors (e.g. different API URLs per district/ward)
+This migration has been completed. See `doc/migration-analysis.md` for the full change log.
 
-**How:**
-```bash
-npx expo prebuild
-```
-This generates `android/` and `ios/` folders. All JavaScript code in `src/` is unchanged — screens, hooks, API layer, context all stay the same. Only the native build config is new.
+**What changed:** Expo managed packages replaced with community MIT equivalents. `android/` native folder now managed directly. APKs built locally with `./gradlew assembleDebug` — no EAS account required.
 
-**New overhead after ejecting:**
-- Must edit `AndroidManifest.xml` and `Info.plist` manually for permission strings
-- Gradle and CocoaPods maintenance falls to your team
-- macOS required for local iOS builds (or continue using EAS cloud builds)
-- `npx expo install --fix` no longer works — version compatibility managed manually
-
-**Cost impact:** None (EAS still works for cloud builds). Developer time increases slightly per release.
+**Result:**
+- EAS Build dependency: eliminated
+- Expo Go SDK cycle lock: eliminated
+- Code reuse: 95% (only 2 hooks + auth storage rewritten)
+- Build cost: ₹0 — local Gradle builds forever
 
 ---
 
@@ -284,7 +276,9 @@ The mobile app is **not rewritten**. A new Ionic + React project imports the sha
 | No macOS required (Android builds) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Zero new learning curve | ✅ | ⚠️ | ❌ | ✅ | ⚠️ |
 
-**Verdict:** Expo is the correct choice for SMC Karmachari v1.0. No other option satisfies all requirements without a significant rewrite, learning investment, or unacceptable performance on target hardware.
+**Verdict (v1.0):** Expo was the correct choice for the initial build. No other option satisfied all requirements without a significant rewrite, learning investment, or unacceptable performance on target hardware.
+
+**Current status (v1.1):** The project has been ejected to Bare React Native, eliminating EAS Build and Expo Go SDK dependencies while keeping 95% of the codebase unchanged. See `doc/migration-analysis.md`.
 
 ---
 
