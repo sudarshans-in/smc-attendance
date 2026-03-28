@@ -1,21 +1,23 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Config } from '../constants/config';
 
-const TOKEN_KEY = '@safai_auth_token';
+const TOKEN_KEY = 'safai_auth_token';
 
-// ─── Token helpers ─────────────────────────────────────────────────────────
+// ─── Token helpers — stored in hardware-backed encrypted storage ───────────
+// expo-secure-store uses iOS Keychain and Android Keystore.
+// Never use AsyncStorage for tokens — it is unencrypted plaintext.
 
 export async function saveToken(token: string): Promise<void> {
-  await AsyncStorage.setItem(TOKEN_KEY, token);
+  await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
 export async function getToken(): Promise<string | null> {
-  return AsyncStorage.getItem(TOKEN_KEY);
+  return SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 export async function clearToken(): Promise<void> {
-  await AsyncStorage.removeItem(TOKEN_KEY);
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
 // ─── Axios instance ────────────────────────────────────────────────────────
@@ -42,35 +44,36 @@ client.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
-// ─── Response interceptor: normalize errors ───────────────────────────────
+// ─── Response interceptor: normalize errors using HTTP status codes ────────
 
 client.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (!error.response) {
-      // Network error / timeout
       return Promise.reject(new Error('Network error. Please check your internet connection.'));
     }
 
     const status = error.response.status;
     const data = error.response.data as any;
-    const message = data?.message ?? data?.detail ?? error.message;
+    // Use server-provided message if available, never expose raw stack traces
+    const message = data?.message ?? data?.detail ?? null;
 
-    if (status === 401) {
-      clearToken();
-      return Promise.reject(new Error('Session expired. Please login again.'));
+    switch (true) {
+      case status === 401:
+        clearToken();
+        return Promise.reject(new Error('Session expired. Please login again.'));
+      case status === 403:
+        return Promise.reject(new Error('You do not have permission to perform this action.'));
+      case status === 404:
+        // Let callers handle 404 via the AxiosError status, not a thrown Error
+        return Promise.reject(error);
+      case status === 409:
+        return Promise.reject(new Error(message ?? 'This record already exists.'));
+      case status >= 500:
+        return Promise.reject(new Error('Server error. Please try again later.'));
+      default:
+        return Promise.reject(new Error(message ?? 'Something went wrong.'));
     }
-    if (status === 403) {
-      return Promise.reject(new Error('You do not have permission to perform this action.'));
-    }
-    if (status === 404) {
-      return Promise.reject(new Error('Resource not found.'));
-    }
-    if (status >= 500) {
-      return Promise.reject(new Error('Server error. Please try again later.'));
-    }
-
-    return Promise.reject(new Error(message ?? 'Something went wrong.'));
   }
 );
 

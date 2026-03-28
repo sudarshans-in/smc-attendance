@@ -7,6 +7,7 @@ import { api } from '../../api';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
 import { AdminWorkerSummary, User } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import WorkerRow from '../../components/WorkerRow';
 
 type SectionData =
@@ -15,6 +16,19 @@ type SectionData =
   | { type: 'empty'; message: string };
 
 export default function AdminScreen() {
+  const { user } = useAuth();
+
+  // Defense-in-depth guard: navigation already restricts this tab to admins,
+  // but we enforce it again here in case the screen is ever reached directly.
+  if (!user?.isAdmin) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Text variant="bodyLarge" style={{ color: Colors.error }}>
+          Access denied.
+        </Text>
+      </View>
+    );
+  }
   const [workers, setWorkers] = useState<User[]>([]);
   const [summaries, setSummaries] = useState<AdminWorkerSummary[]>([]);
   const [refreshing, setRefreshing] = useState(false);
