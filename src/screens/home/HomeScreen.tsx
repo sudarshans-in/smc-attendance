@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Card, Badge, Appbar, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { useLocation } from '../../hooks/useLocation';
@@ -41,21 +42,23 @@ export default function HomeScreen({ navigation }: Props) {
 
   const status = getAttendanceStatus(todayAttendance);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const [att, photos] = await Promise.all([
-          api.getTodayAttendance(user.id),
-          api.getTodayPhotos(user.id),
-        ]);
-        setTodayAttendance(att);
-        setTodayPhotos(photos);
-      } catch {
-        // silent fail on load
-      }
-    })();
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      (async () => {
+        try {
+          const [att, photos] = await Promise.all([
+            api.getTodayAttendance(user.id),
+            api.getTodayPhotos(user.id),
+          ]);
+          setTodayAttendance(att);
+          setTodayPhotos(photos);
+        } catch {
+          // silent fail on load
+        }
+      })();
+    }, [user])
+  );
 
   const handleMarkLogin = async () => {
     if (!user) return;
@@ -71,6 +74,7 @@ export default function HomeScreen({ navigation }: Props) {
     setActionLoading(true);
     const coords = await fetchLocation();
     if (!coords) {
+      setSnackbar(Strings.locationError);
       setActionLoading(false);
       return;
     }
@@ -89,14 +93,26 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleMarkLogout = async () => {
     if (!user) return;
+
+    // Step 1: capture check-out photo (required)
+    const imageUri = await takePicture();
+    if (!imageUri) {
+      setSnackbar(Strings.checkinPhotoRequired);
+      return;
+    }
+
+    // Step 2: get GPS location
     setActionLoading(true);
     const coords = await fetchLocation();
     if (!coords) {
+      setSnackbar(Strings.locationError);
       setActionLoading(false);
       return;
     }
+
+    // Step 3: record check-out with photo + location
     try {
-      const record = await api.markAttendanceLogout(user.id, coords);
+      const record = await api.markAttendanceLogout(user.id, coords, imageUri);
       setTodayAttendance(record);
       setSnackbar(Strings.attendanceLogoutDone);
     } catch (err: any) {

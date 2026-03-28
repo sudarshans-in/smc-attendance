@@ -73,9 +73,26 @@ export async function markAttendanceLogin(
 
 export async function markAttendanceLogout(
   userId: string,
-  location: LocationCoords
+  location: LocationCoords,
+  imageUri: string
 ): Promise<AttendanceRecord> {
-  const res = await client.post<AttendanceRecord>('/attendance/logout', { userId, location });
+  const formData = new FormData();
+  formData.append('userId', userId);
+  formData.append('latitude', String(location.latitude));
+  formData.append('longitude', String(location.longitude));
+  formData.append('accuracy', String(location.accuracy ?? 0));
+
+  const filename = imageUri.split('/').pop() ?? 'checkout.jpg';
+  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
+  formData.append('photo', {
+    uri: imageUri,
+    name: filename,
+    type: ext === 'png' ? 'image/png' : 'image/jpeg',
+  } as any);
+
+  const res = await client.post<AttendanceRecord>('/attendance/logout', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return res.data;
 }
 

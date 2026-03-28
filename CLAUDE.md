@@ -7,7 +7,7 @@ Read this before making any changes.
 
 ## What This App Does
 
-Mobile attendance and work-photo tracking app for **Silchar Municipal Corporation** sanitation workers (SMC Karmacharis). Field workers mark daily GPS attendance and upload work-progress photos. Admins monitor all workers.
+Mobile attendance and work-photo tracking app for **Silchar Municipal Corporation** workers (SMC Karmacharis). Field workers mark daily GPS attendance and upload work-progress photos. Admins monitor all workers.
 
 **App name:** SMC Karmachari
 **Package name:** `com.smc.karmachari`

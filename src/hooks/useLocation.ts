@@ -67,8 +67,9 @@ export function useLocation() {
       setState({ coords, loading: false, error: null });
       return coords;
     } catch (err) {
-      const message = 'Unable to fetch location. Please check GPS settings.';
+      const message = 'Unable to fetch location. Please check that GPS is turned on and try again.';
       setState({ coords: null, loading: false, error: message });
+      Alert.alert('Location Error', message, [{ text: 'OK' }]);
       return null;
     }
   }, []);

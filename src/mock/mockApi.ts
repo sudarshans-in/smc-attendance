@@ -108,7 +108,8 @@ export async function markAttendanceLogin(
 
 export async function markAttendanceLogout(
   userId: string,
-  location: LocationCoords
+  location: LocationCoords,
+  imageUri: string
 ): Promise<AttendanceRecord> {
   await delay();
   const today = getTodayKey();
@@ -126,6 +127,7 @@ export async function markAttendanceLogout(
     ...existing,
     logoutTime: new Date().toISOString(),
     logoutLocation: location,
+    logoutPhotoUri: imageUri,
   };
   const newRecords = [...records];
   newRecords[idx] = updated;

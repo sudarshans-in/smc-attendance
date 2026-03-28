@@ -22,6 +22,7 @@ export interface AttendanceRecord {
   loginLocation: LocationCoords | null;
   logoutLocation: LocationCoords | null;
   loginPhotoUri: string | null;
+  logoutPhotoUri: string | null;
 }
 
 export interface WorkPhoto {

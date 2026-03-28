@@ -73,6 +73,7 @@ export const SEED_ATTENDANCE_RECORDS: AttendanceRecord[] = [
     loginLocation: { ...silcharCoords, latitude: slightVariance(silcharCoords.latitude), longitude: slightVariance(silcharCoords.longitude) },
     logoutLocation: i < 6 ? { ...silcharCoords, latitude: slightVariance(silcharCoords.latitude), longitude: slightVariance(silcharCoords.longitude) } : null,
     loginPhotoUri: `https://picsum.photos/seed/att_w001_${i}/400/300`,
+    logoutPhotoUri: i < 6 ? `https://picsum.photos/seed/out_w001_${i}/400/300` : null,
   })),
   // Worker w002 - last 5 days (absent 2 days)
   ...Array.from({ length: 5 }, (_, i) => ({
@@ -84,6 +85,7 @@ export const SEED_ATTENDANCE_RECORDS: AttendanceRecord[] = [
     loginLocation: silcharCoords,
     logoutLocation: silcharCoords,
     loginPhotoUri: `https://picsum.photos/seed/att_w002_${i}/400/300`,
+    logoutPhotoUri: `https://picsum.photos/seed/out_w002_${i}/400/300`,
   })),
   // Worker w003 - 4 of last 7 days
   ...[0, 1, 3, 5].map((i) => ({
@@ -95,6 +97,7 @@ export const SEED_ATTENDANCE_RECORDS: AttendanceRecord[] = [
     loginLocation: silcharCoords,
     logoutLocation: silcharCoords,
     loginPhotoUri: `https://picsum.photos/seed/att_w003_${i}/400/300`,
+    logoutPhotoUri: `https://picsum.photos/seed/out_w003_${i}/400/300`,
   })),
 ];
 

@@ -43,14 +43,38 @@ export default function AttendanceCard({ attendance, status, onMarkLogin, onMark
 
         {(status === 'logged_in' || status === 'completed') && (
           <>
-            {attendance?.loginPhotoUri && (
-              <Image
-                source={{ uri: attendance.loginPhotoUri }}
-                style={styles.checkinPhoto}
-                accessibilityLabel="Check-in photo"
-                resizeMode="cover"
-              />
-            )}
+            <View style={styles.photoRow}>
+              <View style={styles.photoBlock}>
+                <Text variant="bodySmall" style={styles.photoLabel}>
+                  <MaterialCommunityIcons name="login" size={12} color={Colors.success} /> Check-in
+                </Text>
+                {attendance?.loginPhotoUri ? (
+                  <Image
+                    source={{ uri: attendance.loginPhotoUri }}
+                    style={styles.attendancePhoto}
+                    accessibilityLabel="Check-in photo"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.attendancePhoto, styles.photoPlaceholder]} />
+                )}
+              </View>
+              <View style={styles.photoBlock}>
+                <Text variant="bodySmall" style={styles.photoLabel}>
+                  <MaterialCommunityIcons name="logout" size={12} color={Colors.warning} /> Check-out
+                </Text>
+                {attendance?.logoutPhotoUri ? (
+                  <Image
+                    source={{ uri: attendance.logoutPhotoUri }}
+                    style={styles.attendancePhoto}
+                    accessibilityLabel="Check-out photo"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.attendancePhoto, styles.photoPlaceholder]} />
+                )}
+              </View>
+            </View>
             <View style={styles.timeRow}>
               <View style={styles.timeBlock}>
                 <MaterialCommunityIcons name="login" size={20} color={Colors.success} />
@@ -186,10 +210,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  checkinPhoto: {
-    width: '100%',
-    height: 160,
-    borderRadius: 8,
+  photoRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 12,
+  },
+  photoBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  photoLabel: {
+    color: Colors.onSurfaceVariant,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  attendancePhoto: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+  },
+  photoPlaceholder: {
+    backgroundColor: Colors.surfaceVariant,
   },
 });
