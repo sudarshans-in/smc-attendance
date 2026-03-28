@@ -9,6 +9,7 @@ import { api } from '../../api';
 import { isValidMobile, sanitizeNumeric } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
+import AppLogo from '../../components/AppLogo';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
