@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Text, Button, Card, Chip, ActivityIndicator } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AttendanceRecord, AttendanceStatus } from '../types';
@@ -42,23 +42,33 @@ export default function AttendanceCard({ attendance, status, onMarkLogin, onMark
         </View>
 
         {(status === 'logged_in' || status === 'completed') && (
-          <View style={styles.timeRow}>
-            <View style={styles.timeBlock}>
-              <MaterialCommunityIcons name="login" size={20} color={Colors.success} />
-              <Text variant="bodySmall" style={styles.timeLabel}>{Strings.loginTime}</Text>
-              <Text variant="titleMedium" style={styles.timeValue}>
-                {formatTime(attendance?.loginTime ?? null)}
-              </Text>
+          <>
+            {attendance?.loginPhotoUri && (
+              <Image
+                source={{ uri: attendance.loginPhotoUri }}
+                style={styles.checkinPhoto}
+                accessibilityLabel="Check-in photo"
+                resizeMode="cover"
+              />
+            )}
+            <View style={styles.timeRow}>
+              <View style={styles.timeBlock}>
+                <MaterialCommunityIcons name="login" size={20} color={Colors.success} />
+                <Text variant="bodySmall" style={styles.timeLabel}>{Strings.loginTime}</Text>
+                <Text variant="titleMedium" style={styles.timeValue}>
+                  {formatTime(attendance?.loginTime ?? null)}
+                </Text>
+              </View>
+              <View style={styles.timeDivider} />
+              <View style={styles.timeBlock}>
+                <MaterialCommunityIcons name="logout" size={20} color={Colors.warning} />
+                <Text variant="bodySmall" style={styles.timeLabel}>{Strings.logoutTime}</Text>
+                <Text variant="titleMedium" style={styles.timeValue}>
+                  {formatTime(attendance?.logoutTime ?? null)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.timeDivider} />
-            <View style={styles.timeBlock}>
-              <MaterialCommunityIcons name="logout" size={20} color={Colors.warning} />
-              <Text variant="bodySmall" style={styles.timeLabel}>{Strings.logoutTime}</Text>
-              <Text variant="titleMedium" style={styles.timeValue}>
-                {formatTime(attendance?.logoutTime ?? null)}
-              </Text>
-            </View>
-          </View>
+          </>
         )}
 
         {loading && (
@@ -175,5 +185,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  checkinPhoto: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    marginBottom: 12,
   },
 });

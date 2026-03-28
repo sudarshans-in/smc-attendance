@@ -72,6 +72,7 @@ export const SEED_ATTENDANCE_RECORDS: AttendanceRecord[] = [
     logoutTime: i < 6 ? makeDateTime(i, 16, 15) : null,
     loginLocation: { ...silcharCoords, latitude: slightVariance(silcharCoords.latitude), longitude: slightVariance(silcharCoords.longitude) },
     logoutLocation: i < 6 ? { ...silcharCoords, latitude: slightVariance(silcharCoords.latitude), longitude: slightVariance(silcharCoords.longitude) } : null,
+    loginPhotoUri: `https://picsum.photos/seed/att_w001_${i}/400/300`,
   })),
   // Worker w002 - last 5 days (absent 2 days)
   ...Array.from({ length: 5 }, (_, i) => ({
@@ -82,6 +83,7 @@ export const SEED_ATTENDANCE_RECORDS: AttendanceRecord[] = [
     logoutTime: makeDateTime(i, 16, 30),
     loginLocation: silcharCoords,
     logoutLocation: silcharCoords,
+    loginPhotoUri: `https://picsum.photos/seed/att_w002_${i}/400/300`,
   })),
   // Worker w003 - 4 of last 7 days
   ...[0, 1, 3, 5].map((i) => ({
@@ -92,6 +94,7 @@ export const SEED_ATTENDANCE_RECORDS: AttendanceRecord[] = [
     logoutTime: makeDateTime(i, 15, 45),
     loginLocation: silcharCoords,
     logoutLocation: silcharCoords,
+    loginPhotoUri: `https://picsum.photos/seed/att_w003_${i}/400/300`,
   })),
 ];
 

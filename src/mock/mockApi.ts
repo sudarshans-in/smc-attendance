@@ -82,7 +82,8 @@ export async function signupUser(data: {
 
 export async function markAttendanceLogin(
   userId: string,
-  location: LocationCoords
+  location: LocationCoords,
+  imageUri: string
 ): Promise<AttendanceRecord> {
   await delay();
   const today = getTodayKey();
@@ -99,6 +100,7 @@ export async function markAttendanceLogin(
     logoutTime: null,
     loginLocation: location,
     logoutLocation: null,
+    loginPhotoUri: imageUri,
   };
   await saveAttendanceRecords([...records, newRecord]);
   return newRecord;

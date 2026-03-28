@@ -6,6 +6,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { useLocation } from '../../hooks/useLocation';
+import { useCamera } from '../../hooks/useCamera';
 import { api } from '../../api';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
@@ -34,6 +35,7 @@ export default function HomeScreen({ navigation }: Props) {
   } = useAppContext();
 
   const { loading: locationLoading, fetchLocation } = useLocation();
+  const { takePicture } = useCamera();
   const [snackbar, setSnackbar] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -57,14 +59,25 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleMarkLogin = async () => {
     if (!user) return;
+
+    // Step 1: capture check-in photo (required)
+    const imageUri = await takePicture();
+    if (!imageUri) {
+      setSnackbar(Strings.checkinPhotoRequired);
+      return;
+    }
+
+    // Step 2: get GPS location
     setActionLoading(true);
     const coords = await fetchLocation();
     if (!coords) {
       setActionLoading(false);
       return;
     }
+
+    // Step 3: record attendance with photo + location
     try {
-      const record = await api.markAttendanceLogin(user.id, coords);
+      const record = await api.markAttendanceLogin(user.id, coords, imageUri);
       setTodayAttendance(record);
       setSnackbar(Strings.attendanceLoginDone);
     } catch {
