@@ -1,8 +1,6 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors } from '../constants/colors';
 
 type Size = 'small' | 'medium' | 'large';
 
@@ -20,50 +18,28 @@ export default function AppLogo({ size = 'medium' }: Props) {
   const d = SIZES[size];
 
   return (
-    <View style={styles.wrapper}>
-      {/* Outer badge — dark green rounded square */}
+    <View style={{ alignItems: 'center', gap: 12 }}>
       <View
         style={[
           styles.badge,
-          {
-            width: d.badge,
-            height: d.badge,
-            borderRadius: d.badge * 0.26,
-          },
+          { width: d.badge, height: d.badge, borderRadius: d.badge * 0.26 },
         ]}
       >
-        {/* White inner circle */}
         <View
           style={[
             styles.circle,
-            {
-              width: d.circle,
-              height: d.circle,
-              borderRadius: d.circle / 2,
-            },
+            { width: d.circle, height: d.circle, borderRadius: d.circle / 2 },
           ]}
         >
-          {/* Location-check icon — GPS attendance */}
-          <MaterialCommunityIcons
-            name="map-marker-check"
-            size={d.icon}
-            color={Colors.primary}
-          />
+          <MaterialCommunityIcons name="map-marker-check" size={d.icon} color="#2E7D32" />
         </View>
-
-        {/* SMC label inside badge */}
-        <Text style={[styles.smcLabel, { fontSize: d.label }]}>SMC</Text>
+        <Text style={[styles.label, { fontSize: d.label }]}>SMC</Text>
       </View>
 
-      {/* Full name below badge */}
       {size !== 'small' && (
-        <View style={styles.nameBlock}>
-          <Text style={[styles.appName, { fontSize: d.sub + 4 }]}>
-            SMC Karmachari
-          </Text>
-          <Text style={[styles.appSub, { fontSize: d.sub }]}>
-            Silchar Municipal Corporation
-          </Text>
+        <View style={{ alignItems: 'center', gap: 4 }}>
+          <Text style={[styles.appName, { fontSize: d.sub + 4 }]}>SMC Karmachari</Text>
+          <Text style={[styles.subName, { fontSize: d.sub }]}>Silchar Municipal Corporation</Text>
         </View>
       )}
     </View>
@@ -71,12 +47,8 @@ export default function AppLogo({ size = 'medium' }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: 'center',
-    gap: 12,
-  },
   badge: {
-    backgroundColor: Colors.primaryDark,
+    backgroundColor: '#1B5E20',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -87,26 +59,22 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   circle: {
-    backgroundColor: Colors.onPrimary,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  smcLabel: {
-    color: Colors.onPrimary,
+  label: {
+    color: 'white',
     fontWeight: '800',
     letterSpacing: 2,
   },
-  nameBlock: {
-    alignItems: 'center',
-    gap: 2,
-  },
   appName: {
-    color: Colors.onPrimary,
+    color: 'white',
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  appSub: {
-    color: Colors.primaryContainer,
+  subName: {
+    color: 'rgba(255,255,255,0.7)',
     letterSpacing: 0.3,
   },
 });

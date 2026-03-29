@@ -1,285 +1,171 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Card, Badge, Appbar, Snackbar } from 'react-native-paper';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeMode } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useLocation } from '../../hooks/useLocation';
 import { useCamera } from '../../hooks/useCamera';
 import { api } from '../../api';
 import { Strings } from '../../constants/strings';
-import { Colors } from '../../constants/colors';
-import { AttendanceStatus } from '../../types';
+import { getTheme } from '../../constants/theme';
+import { AttendanceStatus, AppTabParamList } from '../../types';
 import AttendanceCard from '../../components/AttendanceCard';
 import AppLogo from '../../components/AppLogo';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { AppTabParamList } from '../../types';
 
-type Props = {
-  navigation: BottomTabNavigationProp<AppTabParamList, 'Home'>;
-};
+type Props = { navigation: BottomTabNavigationProp<AppTabParamList, 'Home'> };
 
-function getAttendanceStatus(attendance: ReturnType<typeof useAppContext>['todayAttendance']): AttendanceStatus {
-  if (!attendance || !attendance.loginTime) return 'not_started';
-  if (attendance.loginTime && !attendance.logoutTime) return 'logged_in';
+function getStatus(att: ReturnType<typeof useAppContext>['todayAttendance']): AttendanceStatus {
+  if (!att?.loginTime) return 'not_started';
+  if (!att.logoutTime) return 'logged_in';
   return 'completed';
 }
 
 export default function HomeScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
-  const {
-    todayAttendance,
-    todayPhotos,
-    setTodayAttendance,
-    setTodayPhotos,
-  } = useAppContext();
-
-  const { loading: locationLoading, fetchLocation } = useLocation();
+  const { isDark, toggle } = useThemeMode();
+  const t = getTheme(isDark);
+  const { todayAttendance, todayPhotos, setTodayAttendance, setTodayPhotos } = useAppContext();
+  const { loading: locLoading, fetchLocation } = useLocation();
   const { takePicture } = useCamera();
   const [snackbar, setSnackbar] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const status = getStatus(todayAttendance);
 
-  const status = getAttendanceStatus(todayAttendance);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!user) return;
-      (async () => {
-        try {
-          const [att, photos] = await Promise.all([
-            api.getTodayAttendance(user.id),
-            api.getTodayPhotos(user.id),
-          ]);
-          setTodayAttendance(att);
-          setTodayPhotos(photos);
-        } catch {
-          // silent fail on load
-        }
-      })();
-    }, [user])
-  );
+  useFocusEffect(useCallback(() => {
+    if (!user) return;
+    Promise.all([api.getTodayAttendance(user.id), api.getTodayPhotos(user.id)])
+      .then(([att, photos]) => { setTodayAttendance(att); setTodayPhotos(photos); })
+      .catch(() => {});
+  }, [user]));
 
   const handleMarkLogin = async () => {
     if (!user) return;
-
-    // Step 1: capture check-in photo (required)
-    const imageUri = await takePicture();
-    if (!imageUri) {
-      setSnackbar(Strings.checkinPhotoRequired);
-      return;
-    }
-
-    // Step 2: get GPS location
+    const uri = await takePicture();
+    if (!uri) { setSnackbar(Strings.checkinPhotoRequired); return; }
     setActionLoading(true);
     const coords = await fetchLocation();
-    if (!coords) {
-      setSnackbar(Strings.locationError);
-      setActionLoading(false);
-      return;
-    }
-
-    // Step 3: record attendance with photo + location
-    try {
-      const record = await api.markAttendanceLogin(user.id, coords, imageUri);
-      setTodayAttendance(record);
-      setSnackbar(Strings.attendanceLoginDone);
-    } catch {
-      setSnackbar(Strings.errorGeneric);
-    } finally {
-      setActionLoading(false);
-    }
+    if (!coords) { setSnackbar(Strings.locationError); setActionLoading(false); return; }
+    try { setTodayAttendance(await api.markAttendanceLogin(user.id, coords, uri)); setSnackbar(Strings.attendanceLoginDone); }
+    catch { setSnackbar(Strings.errorGeneric); }
+    finally { setActionLoading(false); }
   };
 
   const handleMarkLogout = async () => {
     if (!user) return;
-
-    // Step 1: capture check-out photo (required)
-    const imageUri = await takePicture();
-    if (!imageUri) {
-      setSnackbar(Strings.checkinPhotoRequired);
-      return;
-    }
-
-    // Step 2: get GPS location
+    const uri = await takePicture();
+    if (!uri) { setSnackbar(Strings.checkinPhotoRequired); return; }
     setActionLoading(true);
     const coords = await fetchLocation();
-    if (!coords) {
-      setSnackbar(Strings.locationError);
-      setActionLoading(false);
-      return;
-    }
-
-    // Step 3: record check-out with photo + location
-    try {
-      const record = await api.markAttendanceLogout(user.id, coords, imageUri);
-      setTodayAttendance(record);
-      setSnackbar(Strings.attendanceLogoutDone);
-    } catch (err: any) {
-      setSnackbar(err?.message ?? Strings.errorGeneric);
-    } finally {
-      setActionLoading(false);
-    }
+    if (!coords) { setSnackbar(Strings.locationError); setActionLoading(false); return; }
+    try { setTodayAttendance(await api.markAttendanceLogout(user.id, coords, uri)); setSnackbar(Strings.attendanceLogoutDone); }
+    catch (e: any) { setSnackbar(e?.message ?? Strings.errorGeneric); }
+    finally { setActionLoading(false); }
   };
 
-  const handleLogout = () => {
-    Alert.alert(Strings.logoutConfirmTitle, Strings.logoutConfirmMessage, [
-      { text: Strings.cancel, style: 'cancel' },
-      {
-        text: Strings.confirm,
-        style: 'destructive',
-        onPress: () => logout(),
-      },
-    ]);
-  };
+  const handleLogout = () => Alert.alert(
+    Strings.logoutConfirmTitle, Strings.logoutConfirmMessage,
+    [{ text: Strings.cancel, style: 'cancel' }, { text: Strings.confirm, style: 'destructive', onPress: logout }]
+  );
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <SafeAreaView style={styles.safe} edges={[]}>
-      <Appbar.Header style={styles.appbar} elevated>
-        <View style={styles.appbarLogoWrap}>
-          <AppLogo size="small" />
+    <SafeAreaView style={[s.root, { backgroundColor: t.bg }]} edges={['top']}>
+      {/* Bootstrap-style navbar */}
+      <View style={[s.navbar, { backgroundColor: t.headerBg, borderBottomColor: t.headerBorder }]}>
+        <AppLogo size="small" />
+        <View style={s.navInfo}>
+          <Text style={[s.navTitle, { color: '#1B5E20' }]}>{Strings.appName}</Text>
+          <Text style={[s.navSub, { color: t.textSub }]}>{Strings.greeting(user?.name ?? '')}</Text>
         </View>
-        <Appbar.Content
-          title={
-            <View>
-              <Text style={styles.appbarTitle}>{Strings.appName}</Text>
-              <Text style={styles.appbarSubtitle}>{Strings.greeting(user?.name ?? '')}</Text>
-            </View>
-          }
-        />
-        <Appbar.Action
-          icon="logout"
-          onPress={handleLogout}
-          accessibilityLabel={Strings.logoutApp}
-          color={Colors.onPrimary}
-        />
-      </Appbar.Header>
+        <TouchableOpacity style={[s.navBtn, { backgroundColor: t.surfaceVar, borderColor: t.border }]} onPress={toggle} activeOpacity={0.75}>
+          <MaterialCommunityIcons name={isDark ? 'weather-sunny' : 'weather-night'} size={16} color={t.textSub} />
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.navBtn, { backgroundColor: t.surfaceVar, borderColor: t.border }]} onPress={handleLogout} activeOpacity={0.75}>
+          <MaterialCommunityIcons name="logout" size={16} color={t.textSub} />
+        </TouchableOpacity>
+      </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text variant="bodyMedium" style={styles.dateText}>
-          {today}
-        </Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Date badge */}
+        <View style={[s.dateBadge, { backgroundColor: t.surface, borderColor: t.border }]}>
+          <MaterialCommunityIcons name="calendar-today" size={14} color={t.primary} />
+          <Text style={[s.dateText, { color: t.textSub }]}>{today}</Text>
+        </View>
 
         <AttendanceCard
           attendance={todayAttendance}
           status={status}
           onMarkLogin={handleMarkLogin}
           onMarkLogout={handleMarkLogout}
-          loading={actionLoading || locationLoading}
+          loading={actionLoading || locLoading}
         />
 
-        <Card style={styles.photoCard} elevation={2}>
-          <Card.Content>
-            <View style={styles.photoCardHeader}>
-              <MaterialCommunityIcons name="camera-outline" size={24} color={Colors.info} />
-              <Text variant="titleMedium" style={styles.photoCardTitle}>
-                Work Photos
-              </Text>
-              {todayPhotos.length > 0 && (
-                <Badge style={styles.badge}>{todayPhotos.length}</Badge>
-              )}
+        {/* Work photos card */}
+        <View style={[s.photoCard, { backgroundColor: t.surface, borderColor: t.border }]}>
+          <View style={s.photoCardHeader}>
+            <View style={[s.photoIcon, { backgroundColor: t.infoBg }]}>
+              <MaterialCommunityIcons name="image-multiple-outline" size={18} color={t.infoColor} />
             </View>
-            <Text variant="bodyMedium" style={styles.photoCountText}>
-              {Strings.photosTodayCount(todayPhotos.length)}
-            </Text>
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate('Upload')}
-              style={[styles.actionButton, { backgroundColor: Colors.info }]}
-              contentStyle={styles.actionButtonContent}
-              labelStyle={styles.actionButtonLabel}
-              icon="camera-plus"
-              accessibilityLabel={Strings.uploadPhotoShortcut}
-            >
-              {Strings.uploadPhotoShortcut}
-            </Button>
-          </Card.Content>
-        </Card>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.photoCardTitle, { color: t.text }]}>Today's Work Photos</Text>
+              <Text style={[s.photoCardSub, { color: t.textSub }]}>{Strings.photosTodayCount(todayPhotos.length)}</Text>
+            </View>
+            {todayPhotos.length > 0 && (
+              <View style={[s.countBadge, { backgroundColor: t.infoBg }]}>
+                <Text style={[s.countText, { color: t.infoColor }]}>{todayPhotos.length}</Text>
+              </View>
+            )}
+          </View>
+          <View style={[s.divider, { backgroundColor: t.divider }]} />
+          <TouchableOpacity
+            style={[s.uploadBtn, { backgroundColor: t.accent }]}
+            onPress={() => navigation.navigate('Upload')}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="camera-plus-outline" size={16} color="#fff" />
+            <Text style={s.uploadBtnText}>{Strings.uploadPhotoShortcut}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-      <Snackbar
-        visible={!!snackbar}
-        onDismiss={() => setSnackbar('')}
-        duration={3000}
-        action={{ label: 'OK', onPress: () => setSnackbar('') }}
-      >
-        {snackbar}
-      </Snackbar>
+      {!!snackbar && (
+        <View style={[s.snackbar, { backgroundColor: t.snackbar }]}>
+          <Text style={s.snackMsg}>{snackbar}</Text>
+          <TouchableOpacity onPress={() => setSnackbar('')}>
+            <Text style={[s.snackAction, { color: t.primaryLight }]}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  appbar: {
-    backgroundColor: Colors.primary,
-  },
-  appbarLogoWrap: {
-    marginLeft: 8,
-    marginRight: 4,
-  },
-  appbarTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.onPrimary,
-  },
-  appbarSubtitle: {
-    fontSize: 13,
-    color: Colors.primaryContainer,
-  },
-  scroll: { flex: 1 },
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  dateText: {
-    color: Colors.onSurfaceVariant,
-    marginBottom: 16,
-  },
-  photoCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  photoCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  photoCardTitle: {
-    flex: 1,
-    fontWeight: '600',
-    color: Colors.onSurface,
-  },
-  badge: {
-    backgroundColor: Colors.info,
-  },
-  photoCountText: {
-    color: Colors.onSurfaceVariant,
-    marginBottom: 16,
-  },
-  actionButton: {
-    borderRadius: 8,
-  },
-  actionButtonContent: {
-    height: 56,
-  },
-  actionButtonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
+const s = StyleSheet.create({
+  root:           { flex: 1 },
+  navbar:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1 },
+  navInfo:        { flex: 1 },
+  navTitle:       { fontSize: 16, fontWeight: '700' },
+  navSub:         { fontSize: 12, marginTop: 1 },
+  navBtn:         { width: 34, height: 34, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll:         { padding: 16, paddingBottom: 32, gap: 12 },
+  dateBadge:      { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
+  dateText:       { fontSize: 13 },
+  photoCard:      { borderRadius: 12, borderWidth: 1, padding: 16, gap: 12 },
+  photoCardHeader:{ flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photoIcon:      { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  photoCardTitle: { fontSize: 15, fontWeight: '600' },
+  photoCardSub:   { fontSize: 13, marginTop: 2 },
+  countBadge:     { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  countText:      { fontSize: 13, fontWeight: '700' },
+  divider:        { height: 1 },
+  uploadBtn:      { height: 44, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  uploadBtnText:  { color: '#fff', fontSize: 14, fontWeight: '600' },
+  snackbar:       { position: 'absolute', bottom: 16, left: 16, right: 16, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 8 },
+  snackMsg:       { flex: 1, color: '#fff', fontSize: 14 },
+  snackAction:    { fontSize: 13, fontWeight: '700' },
 });

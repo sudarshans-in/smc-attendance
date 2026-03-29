@@ -1,45 +1,25 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { Chip } from 'react-native-paper';
-import { Colors } from '../constants/colors';
+import { View, Text, StyleSheet } from 'react-native';
+import { useThemeMode } from '../context/ThemeContext';
+import { getTheme } from '../constants/theme';
 import { Strings } from '../constants/strings';
 
-interface Props {
-  present: boolean;
-}
+interface Props { present: boolean; }
 
 export default function StatusBadge({ present }: Props) {
+  const { isDark } = useThemeMode();
+  const t = getTheme(isDark);
   return (
-    <Chip
-      mode="flat"
-      style={[styles.chip, present ? styles.present : styles.absent]}
-      textStyle={[styles.text, present ? styles.presentText : styles.absentText]}
-      compact
-      accessibilityLabel={present ? Strings.present : Strings.absent}
-    >
-      {present ? Strings.present : Strings.absent}
-    </Chip>
+    <View style={[s.badge, { backgroundColor: present ? t.successBg : t.errorBg, borderColor: present ? '#A3CFBB' : '#F1AEB5' }]}
+      accessibilityLabel={present ? Strings.present : Strings.absent}>
+      <Text style={[s.text, { color: present ? t.successText : t.error }]}>
+        {present ? Strings.present : Strings.absent}
+      </Text>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  chip: {
-    height: 28,
-  },
-  present: {
-    backgroundColor: Colors.successContainer,
-  },
-  absent: {
-    backgroundColor: Colors.errorContainer,
-  },
-  text: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  presentText: {
-    color: Colors.success,
-  },
-  absentText: {
-    color: Colors.error,
-  },
+const s = StyleSheet.create({
+  badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
+  text:  { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
 });

@@ -101,6 +101,7 @@ export async function markAttendanceLogin(
     loginLocation: location,
     logoutLocation: null,
     loginPhotoUri: imageUri,
+    logoutPhotoUri: null,
   };
   await saveAttendanceRecords([...records, newRecord]);
   return newRecord;
