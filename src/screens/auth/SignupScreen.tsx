@@ -9,7 +9,6 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import { sanitizeText } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
-import AppLogo from '../../components/AppLogo';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -39,26 +38,30 @@ export default function SignupScreen({ navigation, route }: Props) {
     <SafeAreaView style={s.root}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={s.hero}><AppLogo size="medium" /></View>
 
+          {/* Top brand section */}
+          <View style={s.hero}>
+            <View style={s.logoBadge}>
+              <MaterialCommunityIcons name="account-plus-outline" size={32} color="#fff" />
+            </View>
+            <Text style={s.heroTitle}>Create Account</Text>
+            <Text style={s.heroSub}>Register as SMC Karmachari</Text>
+          </View>
+
+          {/* White card */}
           <View style={s.card}>
-            <Text style={s.cardTitle}>{Strings.signupTitle}</Text>
-            <Text style={s.cardSub}>{Strings.signupSubtitle}</Text>
-
-            {/* Mobile read-only */}
-            <View style={s.mobileBox}>
-              <MaterialCommunityIcons name="phone-check-outline" size={16} color="#198754" />
-              <View>
-                <Text style={s.mobileLabel}>{Strings.mobileLabel}</Text>
-                <Text style={s.mobileValue}>{mobile}</Text>
-              </View>
+            {/* Mobile badge */}
+            <View style={s.mobileBadge}>
+              <MaterialCommunityIcons name="phone-check-outline" size={15} color="#198754" />
+              <Text style={s.mobileBadgeLabel}>Verified Mobile</Text>
+              <Text style={s.mobileBadgeNumber}>{mobile}</Text>
             </View>
 
             {/* Name */}
             <View style={s.field}>
               <Text style={s.label}>{Strings.nameLabel}</Text>
               <View style={[s.inputWrap, s.inputNormal]}>
-                <MaterialCommunityIcons name="account-outline" size={18} color="#6C757D" />
+                <MaterialCommunityIcons name="account-outline" size={18} color="#94A3B8" style={{ marginLeft: 14 }} />
                 <TextInput
                   style={s.input}
                   placeholder={Strings.namePlaceholder}
@@ -75,7 +78,7 @@ export default function SignupScreen({ navigation, route }: Props) {
             <View style={s.field}>
               <Text style={s.label}>{Strings.addressLabel}</Text>
               <View style={[s.inputWrap, s.inputNormal, s.inputMulti]}>
-                <MaterialCommunityIcons name="map-marker-outline" size={18} color="#6C757D" style={{ marginTop: 1 }} />
+                <MaterialCommunityIcons name="map-marker-outline" size={18} color="#94A3B8" style={{ marginLeft: 14, marginTop: 1 }} />
                 <TextInput
                   style={[s.input, { textAlignVertical: 'top' }]}
                   placeholder={Strings.addressPlaceholder}
@@ -89,24 +92,27 @@ export default function SignupScreen({ navigation, route }: Props) {
               </View>
             </View>
 
-            {!!error && <Text style={s.errorMsg}>{error}</Text>}
+            {!!error && (
+              <View style={s.errorRow}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#DC3545" />
+                <Text style={s.errorMsg}>{error}</Text>
+              </View>
+            )}
 
             <TouchableOpacity
-              style={[s.btnPrimary, (!isValid || loading) && s.btnMuted]}
+              style={[s.btnPrimary, (!isValid || loading) && s.btnDisabled]}
               onPress={handleRegister}
               disabled={!isValid || loading}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
             >
-              {loading ? <ActivityIndicator color="#fff" size="small" /> : (
-                <>
-                  <MaterialCommunityIcons name="check" size={16} color="#fff" />
-                  <Text style={s.btnPrimaryText}>{Strings.registerButton}</Text>
-                </>
-              )}
+              {loading
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={s.btnText}>{Strings.registerButton}</Text>
+              }
             </TouchableOpacity>
 
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} disabled={loading} activeOpacity={0.7}>
-              <MaterialCommunityIcons name="arrow-left" size={14} color="#198754" />
+              <MaterialCommunityIcons name="arrow-left" size={14} color="#64748B" />
               <Text style={s.backText}>{Strings.alreadyRegistered}</Text>
             </TouchableOpacity>
           </View>
@@ -116,26 +122,30 @@ export default function SignupScreen({ navigation, route }: Props) {
   );
 }
 
+const ACCENT = '#2563EB';
+
 const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: '#1B5E20' },
-  scroll:       { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
-  hero:         { alignItems: 'center', paddingTop: 28, paddingBottom: 20 },
-  card:         { backgroundColor: '#fff', borderRadius: 16, padding: 24, gap: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 6 },
-  cardTitle:    { fontSize: 20, fontWeight: '700', color: '#212529' },
-  cardSub:      { fontSize: 14, color: '#6C757D', marginTop: -6 },
-  mobileBox:    { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#D1E7DD', borderRadius: 8, padding: 12 },
-  mobileLabel:  { fontSize: 11, color: '#0F5132' },
-  mobileValue:  { fontSize: 16, fontWeight: '700', color: '#0F5132' },
-  field:        { gap: 6 },
-  label:        { fontSize: 13, fontWeight: '600', color: '#495057' },
-  inputWrap:    { flexDirection: 'row', alignItems: 'center', borderRadius: 8, paddingHorizontal: 12, gap: 8, borderWidth: 1.5, backgroundColor: '#fff' },
-  inputNormal:  { borderColor: '#DEE2E6' },
-  inputMulti:   { alignItems: 'flex-start', paddingTop: 12, minHeight: 88 },
-  input:        { flex: 1, fontSize: 15, color: '#212529', paddingVertical: 12 },
-  errorMsg:     { fontSize: 12, color: '#DC3545' },
-  btnPrimary:   { height: 48, backgroundColor: '#198754', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  btnMuted:     { backgroundColor: '#ADB5BD' },
-  btnPrimaryText:{ fontSize: 15, fontWeight: '600', color: '#fff' },
-  backBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 40 },
-  backText:     { fontSize: 14, color: '#198754', fontWeight: '500' },
+  root:            { flex: 1, backgroundColor: '#0F172A' },
+  scroll:          { flexGrow: 1 },
+  hero:            { alignItems: 'center', paddingTop: 44, paddingBottom: 32, paddingHorizontal: 24 },
+  logoBadge:       { width: 64, height: 64, borderRadius: 18, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: ACCENT, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 6 },
+  heroTitle:       { fontSize: 22, fontWeight: '800', color: '#F8FAFC' },
+  heroSub:         { fontSize: 13, color: '#94A3B8', marginTop: 4 },
+  card:            { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, paddingBottom: 48, gap: 16, flex: 1 },
+  mobileBadge:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#DCFCE7', borderRadius: 10, padding: 12 },
+  mobileBadgeLabel:{ flex: 1, fontSize: 12, color: '#166534' },
+  mobileBadgeNumber:{ fontSize: 15, fontWeight: '700', color: '#166534' },
+  field:           { gap: 7 },
+  label:           { fontSize: 13, fontWeight: '600', color: '#374151' },
+  inputWrap:       { flexDirection: 'row', alignItems: 'center', minHeight: 52, borderRadius: 10, borderWidth: 1.5, backgroundColor: '#F8FAFC', gap: 10 },
+  inputNormal:     { borderColor: '#E2E8F0' },
+  inputMulti:      { alignItems: 'flex-start', paddingTop: 14, paddingBottom: 8 },
+  input:           { flex: 1, fontSize: 15, color: '#0F172A', paddingVertical: 0, paddingRight: 14 },
+  errorRow:        { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  errorMsg:        { fontSize: 12, color: '#DC3545' },
+  btnPrimary:      { height: 52, backgroundColor: ACCENT, borderRadius: 10, alignItems: 'center', justifyContent: 'center', shadowColor: ACCENT, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  btnDisabled:     { backgroundColor: '#CBD5E1', shadowOpacity: 0, elevation: 0 },
+  btnText:         { fontSize: 16, fontWeight: '700', color: '#fff' },
+  backBtn:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 40 },
+  backText:        { fontSize: 14, color: '#64748B' },
 });

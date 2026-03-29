@@ -14,7 +14,6 @@ import { Strings } from '../../constants/strings';
 import { getTheme } from '../../constants/theme';
 import { AttendanceStatus, AppTabParamList } from '../../types';
 import AttendanceCard from '../../components/AttendanceCard';
-import AppLogo from '../../components/AppLogo';
 
 type Props = { navigation: BottomTabNavigationProp<AppTabParamList, 'Home'> };
 
@@ -75,18 +74,17 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: t.bg }]} edges={['top']}>
-      {/* Bootstrap-style navbar */}
+      {/* Navbar */}
       <View style={[s.navbar, { backgroundColor: t.headerBg, borderBottomColor: t.headerBorder }]}>
-        <AppLogo size="small" />
         <View style={s.navInfo}>
-          <Text style={[s.navTitle, { color: '#1B5E20' }]}>{Strings.appName}</Text>
-          <Text style={[s.navSub, { color: t.textSub }]}>{Strings.greeting(user?.name ?? '')}</Text>
+          <Text style={[s.navTitle, { color: t.text }]}>{user?.name ?? Strings.appName}</Text>
+          <Text style={[s.navSub, { color: t.textSub }]}>{Strings.appName}</Text>
         </View>
         <TouchableOpacity style={[s.navBtn, { backgroundColor: t.surfaceVar, borderColor: t.border }]} onPress={toggle} activeOpacity={0.75}>
           <MaterialCommunityIcons name={isDark ? 'weather-sunny' : 'weather-night'} size={16} color={t.textSub} />
         </TouchableOpacity>
         <TouchableOpacity style={[s.navBtn, { backgroundColor: t.surfaceVar, borderColor: t.border }]} onPress={handleLogout} activeOpacity={0.75}>
-          <MaterialCommunityIcons name="logout" size={16} color={t.textSub} />
+          <MaterialCommunityIcons name="logout-variant" size={16} color={t.textSub} />
         </TouchableOpacity>
       </View>
 
@@ -147,11 +145,11 @@ export default function HomeScreen({ navigation }: Props) {
 
 const s = StyleSheet.create({
   root:           { flex: 1 },
-  navbar:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1 },
+  navbar:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 10, borderBottomWidth: 1 },
   navInfo:        { flex: 1 },
   navTitle:       { fontSize: 16, fontWeight: '700' },
   navSub:         { fontSize: 12, marginTop: 1 },
-  navBtn:         { width: 34, height: 34, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  navBtn:         { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   scroll:         { padding: 16, paddingBottom: 32, gap: 12 },
   dateBadge:      { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
   dateText:       { fontSize: 13 },

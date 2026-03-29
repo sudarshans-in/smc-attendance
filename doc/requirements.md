@@ -2,14 +2,16 @@
 
 **Project:** SMC Karmachari Attendance & Work Tracking App
 **Client:** Silchar Municipal Corporation (SMC)
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Last Updated:** March 2026
 
 ---
 
 ## 1. Project Overview
 
-A mobile application (Android + iOS) for Safai Karmacharis (sanitation field workers) of Silchar Municipal Corporation to digitally track daily attendance via GPS and submit work progress photos. Supervisors/admins can monitor all worker attendance from the same app.
+A mobile application (Android only) for Safai Karmacharis (sanitation field workers) of Silchar Municipal Corporation to digitally track daily attendance via GPS and submit work progress photos. Supervisors/admins can monitor all worker attendance from the same app.
+
+Built with bare React Native (no Expo SDK, no EAS Build). APKs are generated locally via Gradle.
 
 ---
 
@@ -32,7 +34,7 @@ A mobile application (Android + iOS) for Safai Karmacharis (sanitation field wor
 | FR-1.1 | Worker can login using their registered 10-digit mobile number | ✅ Done |
 | FR-1.2 | Unregistered mobile number redirects to signup screen | ✅ Done |
 | FR-1.3 | Signup collects: full name, address; mobile is pre-filled from login | ✅ Done |
-| FR-1.4 | Session persists via AsyncStorage — survives app restart | ✅ Done |
+| FR-1.4 | Session persists via `react-native-keychain` (secure storage) — survives app restart | ✅ Done |
 | FR-1.5 | Worker can logout; session clears and app returns to login | ✅ Done |
 | FR-1.6 | New registrations default to `isAdmin: false` | ✅ Done |
 
@@ -57,13 +59,16 @@ A mobile application (Android + iOS) for Safai Karmacharis (sanitation field wor
 | FR-3.6 | Login and logout are idempotent — duplicate taps are safe | ✅ Done |
 | FR-3.7 | Location permission denied → clear message + link to Settings | ✅ Done |
 | FR-3.8 | Only one attendance record per worker per calendar day | ✅ Done |
+| FR-3.9 | Check-in requires a selfie photo (camera launches before GPS) | ✅ Done |
+| FR-3.10 | Check-out requires a selfie photo (camera launches before GPS) | ✅ Done |
+| FR-3.11 | Home screen re-fetches attendance on every screen focus (useFocusEffect) | ✅ Done |
 
 ### 3.4 Work Photo Upload
 
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR-4.1 | Worker can take a photo with the device camera | ✅ Done |
-| FR-4.2 | Worker can select an existing photo from gallery | ✅ Done |
+| FR-4.2 | ~~Worker can select an existing photo from gallery~~ — **Removed**: gallery access removed; camera-only to avoid `READ_MEDIA_IMAGES` permission complexity and ensure photos are taken on-site | ❌ Removed |
 | FR-4.3 | Photo is geo-tagged with current GPS at time of submission | ✅ Done |
 | FR-4.4 | Worker can add optional text notes describing work done | ✅ Done |
 | FR-4.5 | Submit button disabled until both image and GPS are ready | ✅ Done |
@@ -99,11 +104,11 @@ A mobile application (Android + iOS) for Safai Karmacharis (sanitation field wor
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-1.1 | Runs on Android 7.0+ (API level 24+) | ✅ Done |
-| NFR-1.2 | Runs on iOS 15.1+ | ✅ Done |
+| NFR-1.2 | ~~Runs on iOS~~ — **Android only** for Release 1 | ❌ Deferred |
 | NFR-1.3 | Portrait orientation only | ✅ Done |
 | NFR-1.4 | Phone-only (no tablet layout) | ✅ Done |
 | NFR-1.5 | No companion app required | ✅ Done |
-| NFR-1.6 | Built with Expo managed workflow (no custom native code) | ✅ Done |
+| NFR-1.6 | Built with **bare React Native** (no Expo SDK, no EAS Build) — local APK via `./gradlew assembleRelease` | ✅ Done |
 
 ### 4.2 Performance
 
@@ -119,12 +124,14 @@ A mobile application (Android + iOS) for Safai Karmacharis (sanitation field wor
 |----|-------------|--------|
 | NFR-3.1 | Primary action buttons minimum 56dp tall (thumb-friendly) | ✅ Done |
 | NFR-3.2 | Minimum body text size: 16sp | ✅ Done |
-| NFR-3.3 | High contrast green palette (WCAG AA) — readable in sunlight | ✅ Done |
+| NFR-3.3 | Bootstrap 5-inspired color system — Bootstrap success-green (`#198754`) primary, blue (`#0D6EFD`) accent, readable in sunlight | ✅ Done |
 | NFR-3.4 | Maximum 2–3 actions per screen | ✅ Done |
 | NFR-3.5 | All interactive elements have loading/disabled visual states | ✅ Done |
-| NFR-3.6 | Forced light mode (dark mode unreadable outdoors) | ✅ Done |
+| NFR-3.6 | Dark/light mode toggle — light mode default (sunlight readability); dark mode available for indoor/night use | ✅ Done |
 | NFR-3.7 | All strings in `src/constants/strings.ts` (multilingual-ready) | ✅ Done |
 | NFR-3.8 | All interactive elements have `accessibilityLabel` | ✅ Done |
+| NFR-3.9 | UI implemented with pure React Native `StyleSheet` + `src/constants/theme.ts` — zero UI library dependency | ✅ Done |
+| NFR-3.10 | Safe area insets handled on all screens (`edges={['top']}`) — no overlap with front camera/notch | ✅ Done |
 
 ### 4.4 API & Backend Integration
 
@@ -145,12 +152,9 @@ A mobile application (Android + iOS) for Safai Karmacharis (sanitation field wor
 |------------|----------|---------|
 | `ACCESS_FINE_LOCATION` | Android | Exact GPS for attendance and photo geo-tagging |
 | `ACCESS_COARSE_LOCATION` | Android | Fallback GPS |
-| `CAMERA` | Both | Take work progress photos |
-| `READ_MEDIA_IMAGES` | Android 13+ | Gallery photo selection |
-| `READ_EXTERNAL_STORAGE` | Android < 13 | Gallery photo selection |
-| `NSLocationWhenInUseUsageDescription` | iOS | GPS when app is in foreground |
-| `NSCameraUsageDescription` | iOS | Camera for work photos |
-| `NSPhotoLibraryUsageDescription` | iOS | Photo library access |
+| `CAMERA` | Android | Take work progress photos and attendance selfies |
+| ~~`READ_MEDIA_IMAGES`~~ | ~~Android 13+~~ | ~~Gallery photo selection~~ — **Removed** (gallery feature removed) |
+| ~~`READ_EXTERNAL_STORAGE`~~ | ~~Android < 13~~ | ~~Gallery photo selection~~ — **Removed** (gallery feature removed) |
 
 ---
 
@@ -158,12 +162,29 @@ A mobile application (Android + iOS) for Safai Karmacharis (sanitation field wor
 
 The following features are deferred to future releases:
 
-- Real backend API integration (one-line switch when ready)
+- Real backend API integration (one-line switch when ready: `Config.USE_MOCK = false`)
 - Push notification reminders for attendance
 - Offline upload queue (photos taken without internet, synced later)
-- Bengali / Assamese language support (strings.ts is structured to support this)
+- Bengali / Assamese language support (`strings.ts` is structured to support this)
 - Role management UI (admin promotion/demotion)
 - Photo compression before upload
 - Map view of attendance/photo location
 - Date range filtering in History
-- Supervisor-specific dashboard (separate from worker dashboard)
+- Supervisor-specific web dashboard (Ionic React web app reusing `src/api/` and `src/types/`)
+- iOS support (Android-only for Release 1)
+- Gallery photo selection (intentionally removed — camera-only enforces on-site photos)
+
+---
+
+## 7. Technical Decisions Log
+
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| Framework | Bare React Native 0.81 | Migrated from Expo — local APK builds, no EAS cloud, no SDK cycle lock |
+| UI system | Pure StyleSheet + `src/constants/theme.ts` | Tamagui (RC, react-dom dep) and NativeWind (requires Reanimated) both had blocking issues in production builds. StyleSheet has zero deps and predictable behavior. |
+| Dark mode | Opt-in toggle (light default) | Field workers use light mode outdoors; indoor/night workers benefit from dark mode. `useColorScheme` + manual override via context. |
+| Gallery removed | Camera-only | Removes `READ_MEDIA_IMAGES` permission, ensures photos are taken on-site, simpler permission flow |
+| Attendance selfie | Required for both check-in and check-out | Confirms physical presence; camera launches before GPS fetch |
+| async-storage version | Pinned to `1.23.1` | v2.x introduced CMake codegen requiring `newArchEnabled=true`; v3.x requires Kotlin Multiplatform Maven (GitHub Packages auth). 1.23.1 is stable and has no native build issues. |
+| `newArchEnabled` | `false` in gradle.properties | Disables Fabric/TurboModules; required for async-storage 1.x and other older native modules |
+| `bundleInDebug` | `true` in gradle.properties | Debug APK bundles JS so it runs without Metro — easier testing on device |
