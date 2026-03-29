@@ -13,6 +13,7 @@ import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
 import { AttendanceStatus } from '../../types';
 import AttendanceCard from '../../components/AttendanceCard';
+import AppLogo from '../../components/AppLogo';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { AppTabParamList } from '../../types';
 
@@ -143,6 +144,9 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <Appbar.Header style={styles.appbar} elevated>
+        <View style={styles.appbarLogoWrap}>
+          <AppLogo size="small" />
+        </View>
         <Appbar.Content
           title={
             <View>
@@ -221,6 +225,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   appbar: {
     backgroundColor: Colors.primary,
+  },
+  appbarLogoWrap: {
+    marginLeft: 8,
+    marginRight: 4,
   },
   appbarTitle: {
     fontSize: 18,

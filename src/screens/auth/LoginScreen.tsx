@@ -51,12 +51,7 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              {Strings.appName}
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              {Strings.appSubtitle}
-            </Text>
+            <AppLogo size="large" />
           </View>
 
           <View style={styles.card}>
@@ -133,16 +128,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 48,
     paddingBottom: 32,
-  },
-  title: {
-    color: Colors.onPrimary,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: Colors.primaryContainer,
-    marginTop: 4,
-    textAlign: 'center',
   },
   card: {
     backgroundColor: Colors.surface,

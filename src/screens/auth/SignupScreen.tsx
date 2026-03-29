@@ -10,6 +10,7 @@ import { api } from '../../api';
 import { sanitizeText } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
 import { Colors } from '../../constants/colors';
+import AppLogo from '../../components/AppLogo';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -52,12 +53,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              {Strings.appName}
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              {Strings.appSubtitle}
-            </Text>
+            <AppLogo size="medium" />
           </View>
 
           <View style={styles.card}>
@@ -154,16 +150,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 48,
     paddingBottom: 32,
-  },
-  title: {
-    color: Colors.onPrimary,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: Colors.primaryContainer,
-    marginTop: 4,
-    textAlign: 'center',
   },
   card: {
     backgroundColor: Colors.surface,
