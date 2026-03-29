@@ -3,29 +3,16 @@ export const Strings = {
   appSubtitle: 'Silchar Municipal Corporation',
 
   // Auth
-  loginTitle: 'Login',
-  loginSubtitle: 'Enter your mobile number to continue',
-  mobileLabel: 'Mobile Number',
-  mobilePlaceholder: '10-digit mobile number',
   loginButton: 'LOGIN',
-  notRegistered: 'Not registered? Sign up below',
-  goToSignup: 'REGISTER NOW',
-  mobileNotFound: 'Mobile number not registered. Please sign up.',
   mobileInvalid: 'Please enter a valid 10-digit mobile number.',
-
-  signupTitle: 'New Registration',
-  signupSubtitle: 'Create your worker account',
   nameLabel: 'Full Name',
   namePlaceholder: 'Enter your full name',
   addressLabel: 'Address',
   addressPlaceholder: 'Enter your home address',
   registerButton: 'REGISTER',
   alreadyRegistered: 'Already registered? Login',
-  signupSuccess: 'Registration successful! Welcome.',
 
   // Home
-  greeting: (name: string) => `Hello, ${name}`,
-  todayDate: 'Today',
   attendanceStatus: 'Attendance Status',
   markAttendance: 'MARK ATTENDANCE',
   markLogout: 'MARK LOGOUT',
@@ -34,13 +21,11 @@ export const Strings = {
   attendanceComplete: 'Attendance Complete',
   loginTime: 'Check-in Time',
   logoutTime: 'Check-out Time',
-  checkinPhotoPrompt: 'Take a photo to mark attendance',
   fetchingLocation: 'Getting your location...',
   checkinPhotoRequired: 'A photo is required to mark attendance.',
   locationError: 'Location access is required to mark attendance. Please allow location permission in Settings.',
   uploadPhotoShortcut: 'UPLOAD WORK PHOTO',
   photosTodayCount: (n: number) => `${n} photo${n !== 1 ? 's' : ''} uploaded today`,
-  logoutApp: 'Logout',
   logoutConfirmTitle: 'Logout',
   logoutConfirmMessage: 'Are you sure you want to logout?',
   cancel: 'Cancel',
@@ -49,8 +34,6 @@ export const Strings = {
   // Upload
   uploadTitle: 'Upload Work Photo',
   takePhoto: 'CAMERA',
-  chooseGallery: 'GALLERY',
-  photoPreviewAlt: 'Work photo preview',
   noPhotoSelected: 'No photo selected',
   notesLabel: 'Work Description (Optional)',
   notesPlaceholder: 'Describe the work done...',
@@ -60,7 +43,6 @@ export const Strings = {
   submitPhoto: 'SUBMIT PHOTO',
   uploadSuccess: 'Photo uploaded successfully!',
   uploadError: 'Failed to upload photo. Please try again.',
-  cameraPermissionDenied: 'Camera permission is required to take photos.',
   uploadHint: 'Take a photo, then tap Submit',
   locationRequiredHint: 'Location required. Please allow GPS and try again.',
 
@@ -70,8 +52,6 @@ export const Strings = {
   tabAttendance: 'Attendance Records',
   noPhotosToday: 'No photos uploaded today',
   noAttendanceRecords: 'No attendance records found',
-  locationLabel: 'Location',
-  notesLabel2: 'Notes',
 
   // Admin
   adminTitle: 'Admin',
@@ -80,7 +60,6 @@ export const Strings = {
   present: 'Present',
   absent: 'Absent',
   noWorkers: 'No workers registered yet',
-  mobileLabel2: 'Mobile',
 
   // Common
   loading: 'Loading...',

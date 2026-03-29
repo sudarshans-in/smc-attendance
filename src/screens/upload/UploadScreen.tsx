@@ -69,8 +69,8 @@ export default function UploadScreen() {
 
           {/* Upload area card */}
           <View style={[s.uploadCard, { backgroundColor: t.surface, borderColor: t.border }]}>
-            <TouchableOpacity style={[s.cameraBtn, { backgroundColor: t.primary }]} onPress={handleCamera} disabled={submitting} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="camera-outline" size={18} color="#fff" />
+            <TouchableOpacity style={[s.cameraBtn, { backgroundColor: t.primary, shadowColor: t.primary }]} onPress={handleCamera} disabled={submitting} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="camera-outline" size={20} color="#fff" />
               <Text style={s.cameraBtnText}>{Strings.takePhoto}</Text>
             </TouchableOpacity>
 
@@ -169,7 +169,7 @@ const s = StyleSheet.create({
   navTitle:        { fontSize: 16, fontWeight: '700' },
   scroll:          { padding: 16, paddingBottom: 40, gap: 16 },
   uploadCard:      { borderRadius: 12, borderWidth: 1, padding: 16, gap: 12 },
-  cameraBtn:       { height: 44, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  cameraBtn:       { height: 52, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, elevation: 3, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 6 },
   cameraBtnText:   { color: '#fff', fontSize: 15, fontWeight: '600' },
   previewBox:      { borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   previewImg:      { width: '100%', height: 200 },
@@ -181,7 +181,7 @@ const s = StyleSheet.create({
   label:           { fontSize: 13, fontWeight: '600' },
   notesWrap:       { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 8, paddingHorizontal: 12, paddingTop: 12, gap: 8, minHeight: 80, borderWidth: 1.5 },
   notesInput:      { flex: 1, fontSize: 14, paddingBottom: 12 },
-  submitBtn:       { height: 44, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  submitBtn:       { height: 52, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   submitText:      { fontSize: 15, fontWeight: '600' },
   hint:            { fontSize: 12, textAlign: 'center' },
   sectionHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

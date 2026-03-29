@@ -90,23 +90,23 @@ export default function AttendanceCard({ attendance, status, onMarkLogin, onMark
         {/* Not started placeholder */}
         {!loading && status === 'not_started' && (
           <View style={[s.emptyState, { backgroundColor: t.surfaceVar, borderColor: t.border }]}>
-            <MaterialCommunityIcons name="map-marker-outline" size={32} color={t.textMuted} />
+            <MaterialCommunityIcons name="calendar-blank-outline" size={32} color={t.textMuted} />
             <Text style={[s.emptyStateText, { color: t.textSub }]}>No attendance recorded today</Text>
           </View>
         )}
 
         {/* Check-in button */}
         {!loading && status === 'not_started' && (
-          <TouchableOpacity style={[s.btn, { backgroundColor: t.primary }]} onPress={onMarkLogin} activeOpacity={0.85} accessibilityLabel={Strings.markAttendance}>
-            <MaterialCommunityIcons name="map-marker-check" size={18} color="#fff" />
+          <TouchableOpacity style={[s.btn, { backgroundColor: t.primary, shadowColor: t.primary }]} onPress={onMarkLogin} activeOpacity={0.85} accessibilityLabel={Strings.markAttendance}>
+            <MaterialCommunityIcons name="map-marker-check" size={20} color="#fff" />
             <Text style={s.btnText}>{Strings.markAttendance}</Text>
           </TouchableOpacity>
         )}
 
         {/* Check-out button */}
         {!loading && status === 'logged_in' && (
-          <TouchableOpacity style={[s.btn, { backgroundColor: t.checkout }]} onPress={onMarkLogout} activeOpacity={0.85} accessibilityLabel={Strings.markLogout}>
-            <MaterialCommunityIcons name="map-marker-minus" size={18} color="#fff" />
+          <TouchableOpacity style={[s.btn, { backgroundColor: t.checkout, shadowColor: t.checkout }]} onPress={onMarkLogout} activeOpacity={0.85} accessibilityLabel={Strings.markLogout}>
+            <MaterialCommunityIcons name="map-marker-remove-outline" size={20} color="#fff" />
             <Text style={s.btnText}>{Strings.markLogout}</Text>
           </TouchableOpacity>
         )}
@@ -135,6 +135,6 @@ const s = StyleSheet.create({
   loadingText:    { fontSize: 14 },
   emptyState:     { borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, gap: 6 },
   emptyStateText: { fontSize: 13 },
-  btn:            { height: 48, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  btn:            { height: 52, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, elevation: 3, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 6 },
   btnText:        { fontSize: 15, fontWeight: '600', color: '#fff' },
 });

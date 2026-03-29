@@ -15,10 +15,10 @@ import AdminScreen from '../screens/admin/AdminScreen';
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 const TABS: Record<string, { active: string; inactive: string; label: string }> = {
-  Home:    { active: 'home',          inactive: 'home-outline',         label: 'Home' },
-  Upload:  { active: 'camera',        inactive: 'camera-outline',       label: 'Upload' },
-  History: { active: 'clock',         inactive: 'clock-outline',        label: 'History' },
-  Admin:   { active: 'account-group', inactive: 'account-group-outline', label: 'Admin' },
+  Home:    { active: 'home',              inactive: 'home-outline',              label: 'Home' },
+  Upload:  { active: 'camera',            inactive: 'camera-outline',            label: 'Upload' },
+  History: { active: 'calendar-month',    inactive: 'calendar-month-outline',    label: 'History' },
+  Admin:   { active: 'shield-account',    inactive: 'shield-account-outline',    label: 'Admin' },
 };
 
 export default function AppNavigator() {

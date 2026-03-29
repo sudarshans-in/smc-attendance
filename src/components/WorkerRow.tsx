@@ -25,7 +25,7 @@ export default function WorkerRow({ user, attendance, showAttendance = false }: 
   return (
     <View style={[s.row, { borderBottomColor: t.divider }]}>
       <View style={[s.avatar, { backgroundColor: t.successBg }]}>
-        <MaterialCommunityIcons name="account" size={24} color={t.primary} />
+        <MaterialCommunityIcons name="account-circle-outline" size={26} color={t.primary} />
       </View>
       <View style={s.info}>
         <Text style={[s.name, { color: t.text }]} numberOfLines={1}>{user.name}</Text>
