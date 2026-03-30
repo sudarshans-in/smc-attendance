@@ -49,50 +49,18 @@ export async function signupUser(data: {
 export async function markAttendanceLogin(
   userId: string,
   location: LocationCoords,
-  imageUri: string
+  _imageUri: string   // photo captured for UX verification; not accepted by this endpoint
 ): Promise<AttendanceRecord> {
-  const formData = new FormData();
-  formData.append('userId', userId);
-  formData.append('latitude', String(location.latitude));
-  formData.append('longitude', String(location.longitude));
-  formData.append('accuracy', String(location.accuracy ?? 0));
-
-  const filename = imageUri.split('/').pop() ?? 'checkin.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
-  formData.append('photo', {
-    uri: imageUri,
-    name: filename,
-    type: ext === 'png' ? 'image/png' : 'image/jpeg',
-  } as any);
-
-  const res = await client.post<AttendanceRecord>('/attendance/login', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await client.post<AttendanceRecord>('/attendance/login', { userId, location });
   return res.data;
 }
 
 export async function markAttendanceLogout(
   userId: string,
   location: LocationCoords,
-  imageUri: string
+  _imageUri: string   // photo captured for UX verification; not accepted by this endpoint
 ): Promise<AttendanceRecord> {
-  const formData = new FormData();
-  formData.append('userId', userId);
-  formData.append('latitude', String(location.latitude));
-  formData.append('longitude', String(location.longitude));
-  formData.append('accuracy', String(location.accuracy ?? 0));
-
-  const filename = imageUri.split('/').pop() ?? 'checkout.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
-  formData.append('photo', {
-    uri: imageUri,
-    name: filename,
-    type: ext === 'png' ? 'image/png' : 'image/jpeg',
-  } as any);
-
-  const res = await client.post<AttendanceRecord>('/attendance/logout', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await client.post<AttendanceRecord>('/attendance/logout', { userId, location });
   return res.data;
 }
 

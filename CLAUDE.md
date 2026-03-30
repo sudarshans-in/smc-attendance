@@ -229,7 +229,7 @@ Any other 10-digit mobile → redirects to Signup screen.
 | `EMFILE: too many open files` | `brew install watchman` |
 | `error: unknown command 'start'` | Use `npx react-native start` not `npx expo start` |
 | `Invariant Violation / runtime not ready` | Check `import 'react-native-gesture-handler'` is first line of `index.js` |
-| Gradle picks up Node 14 | `export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"` before running Gradle |
+| Gradle picks up Node 14 | `nodeExecutableAndArgs` is set in `android/app/build.gradle` to point to nvm Node 20. If you move to a different Node version, update that line. |
 | `autolinking.json` missing | Check `settings.gradle` has `autolinkLibrariesFromCommand()` with full npx path |
 | `CMake error react_codegen_rnasyncstorage` | async-storage v2/v3 codegen issue. Pin to `1.23.1` + `newArchEnabled=false` in gradle.properties |
 | async-storage `GitHub Packages 401` | v3.x requires Maven auth for `org.asyncstorage.shared_storage`. Pin to `1.23.1`. |

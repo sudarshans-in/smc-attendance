@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AttendanceRecord, AttendanceStatus } from '../types';
 import { useThemeMode } from '../context/ThemeContext';
@@ -50,33 +50,25 @@ export default function AttendanceCard({ attendance, status, onMarkLogin, onMark
       </View>
 
       <View style={s.cardBody}>
-        {/* Photo + time grid */}
+        {/* Check-in / Check-out time blocks */}
         {(status === 'logged_in' || status === 'completed') && (
-          <>
-            <View style={s.photoRow}>
-              {(['login', 'logout'] as const).map((type) => {
-                const uri = type === 'login' ? attendance?.loginPhotoUri : attendance?.logoutPhotoUri;
-                const color = type === 'login' ? t.success : t.checkout;
-                return (
-                  <View key={type} style={[s.photoCol, { borderColor: t.border, backgroundColor: t.surfaceVar }]}>
-                    {uri
-                      ? <Image source={{ uri }} style={s.photo} resizeMode="cover" />
-                      : <View style={[s.photoEmpty, { backgroundColor: t.surfaceVar }]}>
-                          <MaterialCommunityIcons name="camera-off-outline" size={22} color={t.textMuted} />
-                        </View>
-                    }
-                    <View style={[s.photoFooter, { borderTopColor: t.border }]}>
-                      <MaterialCommunityIcons name={type} size={12} color={color} />
-                      <Text style={[s.photoLabel, { color: t.textSub }]}>{type === 'login' ? 'Check-in' : 'Check-out'}</Text>
-                      <Text style={[s.photoTime, { color: t.text }]}>
-                        {fmtTime(type === 'login' ? attendance?.loginTime ?? null : attendance?.logoutTime ?? null)}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
+          <View style={s.timesRow}>
+            <View style={[s.timeBlock, { backgroundColor: t.successBg, borderColor: '#A3CFBB' }]}>
+              <MaterialCommunityIcons name="login" size={14} color={t.success} />
+              <View>
+                <Text style={[s.timeBlockLabel, { color: t.successText }]}>CHECK IN</Text>
+                <Text style={[s.timeBlockValue, { color: t.successText }]}>{fmtTime(attendance?.loginTime ?? null)}</Text>
+              </View>
             </View>
-          </>
+            <MaterialCommunityIcons name="arrow-right" size={14} color={t.textMuted} />
+            <View style={[s.timeBlock, { backgroundColor: status === 'completed' ? t.warningBg : t.surfaceVar, borderColor: status === 'completed' ? '#FFECB5' : t.border }]}>
+              <MaterialCommunityIcons name="logout" size={14} color={status === 'completed' ? t.warning : t.textMuted} />
+              <View>
+                <Text style={[s.timeBlockLabel, { color: status === 'completed' ? t.warning : t.textMuted }]}>CHECK OUT</Text>
+                <Text style={[s.timeBlockValue, { color: status === 'completed' ? t.warning : t.textMuted }]}>{fmtTime(attendance?.logoutTime ?? null)}</Text>
+              </View>
+            </View>
+          </View>
         )}
 
         {/* Loading */}
@@ -124,13 +116,10 @@ const s = StyleSheet.create({
   statusDot:      { width: 6, height: 6, borderRadius: 3 },
   statusPillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
   cardBody:       { padding: 16, gap: 12 },
-  photoRow:       { flexDirection: 'row', gap: 10 },
-  photoCol:       { flex: 1, borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
-  photo:          { width: '100%', height: 100 },
-  photoEmpty:     { width: '100%', height: 100, alignItems: 'center', justifyContent: 'center' },
-  photoFooter:    { padding: 8, gap: 2, borderTopWidth: 1 },
-  photoLabel:     { fontSize: 11, fontWeight: '500' },
-  photoTime:      { fontSize: 13, fontWeight: '700' },
+  timesRow:       { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  timeBlock:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10 },
+  timeBlockLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+  timeBlockValue: { fontSize: 13, fontWeight: '700', marginTop: 2 },
   loadingRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
   loadingText:    { fontSize: 14 },
   emptyState:     { borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, gap: 6 },
