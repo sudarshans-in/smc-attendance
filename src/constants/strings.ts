@@ -4,7 +4,15 @@ export const Strings = {
 
   // Auth
   loginButton: 'LOGIN',
+  sendOtpButton: 'SEND OTP',
+  verifyOtpButton: 'VERIFY & LOGIN',
   mobileInvalid: 'Please enter a valid 10-digit mobile number.',
+  otpLabel: 'One-Time Password (OTP)',
+  otpPlaceholder: 'Enter OTP',
+  otpInvalid: 'Please enter the OTP sent to your mobile.',
+  otpIncorrect: 'Incorrect OTP. Please try again.',
+  otpSent: 'OTP sent to your mobile number.',
+  changeMobile: 'Change number',
   nameLabel: 'Full Name',
   namePlaceholder: 'Enter your full name',
   addressLabel: 'Address',

@@ -10,10 +10,6 @@ react {
     entryFile = file("../../index.js")
     reactNativeDir = file("../../node_modules/react-native")
     codegenDir = file("../../node_modules/@react-native/codegen")
-    // Force Gradle to use nvm Node 20 — system node (/usr/local/bin/node) is v14
-    // which is incompatible with @react-native-community/cli bundler commands
-    nodeExecutableAndArgs = ["/Users/sudarshanshinde/.nvm/versions/node/v20.20.2/bin/node"]
-
     enableBundleCompression = (findProperty('android.enableBundleCompression') ?: false).toBoolean()
 
     /* Folders */

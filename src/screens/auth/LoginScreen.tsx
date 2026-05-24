@@ -13,19 +13,33 @@ type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'
 
 export default function LoginScreen({ navigation }: Props) {
   const [mobile, setMobile] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
-  const isValid = isValidMobile(mobile);
+  const isMobileValid = isValidMobile(mobile);
 
-  const handleLogin = async () => {
-    if (!isValid) { setError(Strings.mobileInvalid); return; }
+  const handleSendOtp = async () => {
+    if (!isMobileValid) { setError(Strings.mobileInvalid); return; }
     setError(''); setLoading(true);
     try {
-      const user = await api.loginUser(mobile);
+      await api.sendOtp(mobile);
+      setStep('otp');
+    } catch { setError(Strings.errorGeneric); }
+    finally { setLoading(false); }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) { setError(Strings.otpInvalid); return; }
+    setError(''); setLoading(true);
+    try {
+      const user = await api.loginUser(mobile, otp.trim());
       if (user) await login(user);
       else navigation.navigate('Signup', { mobile });
-    } catch { setError(Strings.errorGeneric); }
+    } catch (e: any) {
+      setError(e?.message === 'INVALID_OTP' ? Strings.otpIncorrect : Strings.errorGeneric);
+    }
     finally { setLoading(false); }
   };
 
@@ -48,11 +62,16 @@ export default function LoginScreen({ navigation }: Props) {
           {/* White card */}
           <View style={s.card}>
             <Text style={s.cardTitle}>Welcome back</Text>
-            <Text style={s.cardSub}>Enter your registered mobile number to continue</Text>
+            <Text style={s.cardSub}>
+              {step === 'mobile'
+                ? 'Enter your registered mobile number to continue'
+                : `OTP sent to +91 ${mobile}`}
+            </Text>
 
+            {/* Step 1: Mobile number */}
             <View style={s.field}>
               <Text style={s.label}>Mobile Number</Text>
-              <View style={[s.inputWrap, error ? s.inputError : s.inputNormal]}>
+              <View style={[s.inputWrap, error && step === 'mobile' ? s.inputError : s.inputNormal]}>
                 <Text style={s.countryCode}>+91</Text>
                 <View style={s.inputDivider} />
                 <TextInput
@@ -63,46 +82,77 @@ export default function LoginScreen({ navigation }: Props) {
                   onChangeText={(v) => { setError(''); setMobile(sanitizeNumeric(v).slice(0, 10)); }}
                   keyboardType="numeric"
                   maxLength={10}
-                  editable={!loading}
+                  editable={!loading && step === 'mobile'}
                 />
                 {mobile.length === 10 && (
                   <MaterialCommunityIcons name="check-circle" size={18} color="#198754" />
                 )}
               </View>
-              {!!error && (
-                <View style={s.errorRow}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#DC3545" />
-                  <Text style={s.errorMsg}>{error}</Text>
-                </View>
+              {step === 'otp' && (
+                <TouchableOpacity onPress={() => { setStep('mobile'); setOtp(''); setError(''); }} disabled={loading}>
+                  <Text style={s.changeLink}>{Strings.changeMobile}</Text>
+                </TouchableOpacity>
               )}
             </View>
 
+            {/* Step 2: OTP input */}
+            {step === 'otp' && (
+              <View style={s.field}>
+                <Text style={s.label}>{Strings.otpLabel}</Text>
+                <View style={[s.inputWrap, !!error ? s.inputError : s.inputNormal]}>
+                  <MaterialCommunityIcons name="shield-key-outline" size={18} color="#64748B" style={{ marginLeft: 14, marginRight: 12 }} />
+                  <TextInput
+                    style={s.input}
+                    placeholder={Strings.otpPlaceholder}
+                    placeholderTextColor="#ADB5BD"
+                    value={otp}
+                    onChangeText={(v) => { setError(''); setOtp(sanitizeNumeric(v)); }}
+                    keyboardType="numeric"
+                    maxLength={8}
+                    editable={!loading}
+                    autoFocus
+                  />
+                </View>
+              </View>
+            )}
+
+            {!!error && (
+              <View style={s.errorRow}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#DC3545" />
+                <Text style={s.errorMsg}>{error}</Text>
+              </View>
+            )}
+
             <TouchableOpacity
-              style={[s.btnPrimary, (!isValid || loading) && s.btnDisabled]}
-              onPress={handleLogin}
-              disabled={!isValid || loading}
+              style={[s.btnPrimary, ((!isMobileValid && step === 'mobile') || loading) && s.btnDisabled]}
+              onPress={step === 'mobile' ? handleSendOtp : handleVerifyOtp}
+              disabled={(!isMobileValid && step === 'mobile') || loading}
               activeOpacity={0.88}
+              accessibilityLabel={step === 'mobile' ? Strings.sendOtpButton : Strings.verifyOtpButton}
             >
               {loading
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={s.btnText}>{Strings.loginButton}</Text>
+                : <Text style={s.btnText}>{step === 'mobile' ? Strings.sendOtpButton : Strings.verifyOtpButton}</Text>
               }
             </TouchableOpacity>
 
-            <View style={s.orRow}>
-              <View style={s.orLine} />
-              <Text style={s.orText}>New to the app?</Text>
-              <View style={s.orLine} />
-            </View>
-
-            <TouchableOpacity
-              style={s.btnGhost}
-              onPress={() => navigation.navigate('Signup', { mobile })}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <Text style={s.btnGhostText}>Create Account</Text>
-            </TouchableOpacity>
+            {step === 'mobile' && (
+              <>
+                <View style={s.orRow}>
+                  <View style={s.orLine} />
+                  <Text style={s.orText}>New to the app?</Text>
+                  <View style={s.orLine} />
+                </View>
+                <TouchableOpacity
+                  style={s.btnGhost}
+                  onPress={() => navigation.navigate('Signup', { mobile })}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.btnGhostText}>Create Account</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -150,4 +200,5 @@ const s = StyleSheet.create({
   orText:        { fontSize: 13, color: '#94A3B8' },
   btnGhost:      { height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#E2E8F0' },
   btnGhostText:  { fontSize: 15, fontWeight: '600', color: '#374151' },
+  changeLink:    { fontSize: 12, color: ACCENT, marginTop: 4, alignSelf: 'flex-end' },
 });

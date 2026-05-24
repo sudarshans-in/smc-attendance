@@ -50,8 +50,17 @@ async function saveWorkPhotos(photos: WorkPhoto[]): Promise<void> {
 
 // --- Auth API ---
 
-export async function loginUser(mobile: string): Promise<User | null> {
+// Static OTP for mock — mirrors the backend's hardcoded OTP
+const MOCK_OTP = '24052026';
+
+export async function sendOtp(_mobile: string): Promise<void> {
   await delay();
+  // In mock mode, OTP is always MOCK_OTP — no real SMS sent
+}
+
+export async function loginUser(mobile: string, otp: string): Promise<User | null> {
+  await delay();
+  if (otp !== MOCK_OTP) throw new Error('INVALID_OTP');
   const users = await getUsers();
   return users.find((u) => u.mobile === mobile) ?? null;
 }

@@ -39,17 +39,24 @@ npx react-native run-android
 ### Build APK
 
 ```bash
+# Step 1 — Switch to Node 20 (required before every build)
+nvm use 20
+
+# Step 2 — Export Node to PATH so Gradle can find it (Gradle doesn't inherit nvm PATH)
+export PATH="$(dirname $(which node)):$PATH"
+
+# Step 3 — Build
+
 # Debug APK
-export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
 cd android && ./gradlew assembleDebug
 # → android/app/build/outputs/apk/debug/app-debug.apk
 
 # Release APK
-export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
 cd android && ./gradlew assembleRelease
+# → android/app/build/outputs/apk/release/app-release.apk
 ```
 
-> Why `export PATH` before Gradle: Gradle doesn't inherit nvm's Node path. This ensures Gradle uses Node 20, not the system Node 14.
+> `export PATH="$(dirname $(which node)):$PATH"` dynamically resolves whichever Node version nvm has active — no hardcoded path needed.
 
 ---
 

@@ -34,13 +34,24 @@ function isNotFound(error: unknown): boolean {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
-export async function loginUser(mobile: string): Promise<User | null> {
+export async function sendOtp(mobile: string): Promise<void> {
+  // Backend sends OTP to this mobile number (currently hardcoded to 24052026).
+  // When real SMS is integrated, only the backend changes — no app update needed.
+  await client.post('/auth/send-otp', { mobile });
+}
+
+function isUnauthorized(error: unknown): boolean {
+  return (error as AxiosError)?.response?.status === 401;
+}
+
+export async function loginUser(mobile: string, otp: string): Promise<User | null> {
   try {
-    const res = await client.post<{ user: User; token: string }>('/auth/login', { mobile });
+    const res = await client.post<{ user: User; token: string }>('/auth/login', { mobile, otp });
     await saveToken(res.data.token);
     return res.data.user;
   } catch (error: unknown) {
     if (isNotFound(error)) return null;
+    if (isUnauthorized(error)) throw new Error('INVALID_OTP');
     throw error;
   }
 }
