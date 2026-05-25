@@ -33,18 +33,17 @@ function AttendanceItem({ record, isDark }: { record: AttendanceRecord; isDark: 
       </View>
       <View style={s.timesRow}>
         <View style={[s.timeBlock, { backgroundColor: t.successBg, borderColor: '#A3CFBB' }]}>
-          <MaterialCommunityIcons name="login" size={13} color={t.success} />
+          <MaterialCommunityIcons name="login" size={16} color={t.success} />
           <View>
             <Text style={[s.timeBlockLabel, { color: t.successText }]}>CHECK IN</Text>
             <Text style={[s.timeBlockValue, { color: t.successText }]}>{fmtTime(record.loginTime)}</Text>
           </View>
         </View>
-        <MaterialCommunityIcons name="arrow-right" size={14} color={t.textMuted} />
         <View style={[s.timeBlock, { backgroundColor: hasOut ? t.warningBg : t.surfaceVar, borderColor: hasOut ? '#FFECB5' : t.border }]}>
-          <MaterialCommunityIcons name="logout" size={13} color={hasOut ? t.warning : t.textMuted} />
+          <MaterialCommunityIcons name="logout" size={16} color={hasOut ? t.warning : t.textMuted} />
           <View>
-            <Text style={[s.timeBlockLabel, { color: hasOut ? t.warning : t.textMuted }]}>CHECK OUT</Text>
-            <Text style={[s.timeBlockValue, { color: hasOut ? t.warning : t.textMuted }]}>{fmtTime(record.logoutTime)}</Text>
+            <Text style={[s.timeBlockLabel, { color: hasOut ? t.warningText : t.textMuted }]}>CHECK OUT</Text>
+            <Text style={[s.timeBlockValue, { color: hasOut ? t.warningText : t.textMuted }]}>{fmtTime(record.logoutTime)}</Text>
           </View>
         </View>
       </View>
@@ -81,12 +80,12 @@ export default function HistoryScreen() {
     <SafeAreaView style={[s.root, { backgroundColor: t.bg }]} edges={['top']}>
       {/* Navbar */}
       <View style={[s.navbar, { backgroundColor: t.headerBg, borderBottomColor: t.headerBorder }]}>
-        <MaterialCommunityIcons name="history" size={20} color={t.primary} />
-        <Text style={[s.navTitle, { color: t.text }]}>{Strings.historyTitle}</Text>
+        <MaterialCommunityIcons name="history" size={20} color={t.onHeader} />
+        <Text style={[s.navTitle, { color: t.onHeader }]}>{Strings.historyTitle}</Text>
       </View>
 
       {/* Tab bar */}
-      <View style={[s.tabBar, { backgroundColor: t.headerBg, borderBottomColor: t.headerBorder }]}>
+      <View style={[s.tabBar, { backgroundColor: t.surface, borderBottomColor: t.border }]}>
         {(['photos', 'attendance'] as Tab[]).map((tb) => (
           <TouchableOpacity key={tb} style={[s.tabItem, tab === tb && { borderBottomColor: t.primary }]} onPress={() => setTab(tb)} activeOpacity={0.8}>
             <MaterialCommunityIcons name={tb === 'photos' ? 'camera-outline' : 'clock-outline'} size={15} color={tab === tb ? t.primary : t.textSub} />
@@ -127,19 +126,19 @@ const s = StyleSheet.create({
   navbar:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 10, borderBottomWidth: 1 },
   navTitle:       { fontSize: 16, fontWeight: '700' },
   tabBar:         { flexDirection: 'row', borderBottomWidth: 1 },
-  tabItem:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabText:        { fontSize: 13, fontWeight: '500' },
+  tabItem:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabText:        { fontSize: 14, fontWeight: '500' },
   list:           { padding: 16, paddingBottom: 32 },
-  attCard:        { borderRadius: 10, borderWidth: 1, padding: 14, marginBottom: 10, gap: 10 },
+  attCard:        { borderRadius: 12, borderWidth: 1, padding: 16, marginBottom: 12, gap: 12 },
   attCardTop:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  attDate:        { flex: 1, fontSize: 14, fontWeight: '600' },
-  todayBadge:     { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  todayText:      { fontSize: 11, fontWeight: '700' },
+  attDate:        { flex: 1, fontSize: 15, fontWeight: '600' },
+  todayBadge:     { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  todayText:      { fontSize: 12, fontWeight: '700' },
   statusDot:      { width: 8, height: 8, borderRadius: 4 },
-  timesRow:       { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timeBlock:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
-  timeBlockLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
-  timeBlockValue: { fontSize: 13, fontWeight: '700', marginTop: 2 },
+  timesRow:       { flexDirection: 'column', gap: 8 },
+  timeBlock:      { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  timeBlockLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  timeBlockValue: { fontSize: 15, fontWeight: '700', marginTop: 2 },
   empty:          { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingTop: 80 },
-  emptyText:      { fontSize: 14 },
+  emptyText:      { fontSize: 15 },
 });
