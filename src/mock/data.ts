@@ -8,6 +8,7 @@ export const SEED_WORKERS: User[] = [
     address: 'Ward 12, Premtola, Silchar',
     createdAt: '2024-01-15T08:00:00.000Z',
     isAdmin: true,
+    squadId: 'sq001',
   },
   {
     id: 'w002',
@@ -16,6 +17,7 @@ export const SEED_WORKERS: User[] = [
     address: 'Tarapur Road, Silchar',
     createdAt: '2024-01-16T09:00:00.000Z',
     isAdmin: false,
+    squadId: 'sq001',
   },
   {
     id: 'w003',
@@ -24,6 +26,7 @@ export const SEED_WORKERS: User[] = [
     address: 'Rangirkhari, Silchar',
     createdAt: '2024-01-17T10:00:00.000Z',
     isAdmin: false,
+    squadId: 'sq001',
   },
   {
     id: 'w004',
@@ -32,6 +35,7 @@ export const SEED_WORKERS: User[] = [
     address: 'Meherpur, Silchar',
     createdAt: '2024-01-18T08:30:00.000Z',
     isAdmin: false,
+    squadId: 'sq002',
   },
   {
     id: 'w005',
@@ -40,6 +44,7 @@ export const SEED_WORKERS: User[] = [
     address: 'Udharbond, Silchar',
     createdAt: '2024-01-20T09:30:00.000Z',
     isAdmin: false,
+    // No squadId — intentionally missing to test the warning banner
   },
 ];
 

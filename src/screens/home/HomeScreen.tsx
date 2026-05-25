@@ -95,6 +95,19 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={[s.dateText, { color: t.textSub }]}>{today}</Text>
         </View>
 
+        {/* No-squad warning — shown until admin assigns this worker to a squad */}
+        {!user?.squadId && (
+          <View style={[s.warnBanner, { backgroundColor: t.warningBg, borderColor: '#F59E0B' }]}>
+            <MaterialCommunityIcons name="account-group-outline" size={20} color={t.warningText} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.warnTitle, { color: t.warningText }]}>No Squad Assigned</Text>
+              <Text style={[s.warnSub, { color: t.warningText }]}>
+                Contact your supervisor to be added to a squad before marking attendance.
+              </Text>
+            </View>
+          </View>
+        )}
+
         <AttendanceCard
           attendance={todayAttendance}
           status={status}
@@ -153,6 +166,9 @@ const s = StyleSheet.create({
   scroll:         { padding: 16, paddingBottom: 32, gap: 12 },
   dateBadge:      { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
   dateText:       { fontSize: 13 },
+  warnBanner:     { flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 10, borderWidth: 1, padding: 14 },
+  warnTitle:      { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  warnSub:        { fontSize: 13, lineHeight: 18 },
   photoCard:      { borderRadius: 12, borderWidth: 1, padding: 16, gap: 12 },
   photoCardHeader:{ flexDirection: 'row', alignItems: 'center', gap: 12 },
   photoIcon:      { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },

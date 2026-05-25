@@ -5,6 +5,7 @@ export interface User {
   address: string;
   createdAt: string;
   isAdmin: boolean;
+  squadId?: string;
 }
 
 export interface LocationCoords {
