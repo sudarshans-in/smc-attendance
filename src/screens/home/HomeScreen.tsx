@@ -77,14 +77,14 @@ export default function HomeScreen({ navigation }: Props) {
       {/* Navbar */}
       <View style={[s.navbar, { backgroundColor: t.headerBg, borderBottomColor: t.headerBorder }]}>
         <View style={s.navInfo}>
-          <Text style={[s.navTitle, { color: t.text }]}>{user?.name ?? Strings.appName}</Text>
-          <Text style={[s.navSub, { color: t.textSub }]}>{Strings.appName}</Text>
+          <Text style={[s.navTitle, { color: t.onHeader }]}>{user?.name ?? Strings.appName}</Text>
+          <Text style={[s.navSub, { color: t.onHeaderSub }]}>{Strings.appName}</Text>
         </View>
-        <TouchableOpacity style={[s.navBtn, { backgroundColor: t.surfaceVar, borderColor: t.border }]} onPress={toggle} activeOpacity={0.75}>
-          <MaterialCommunityIcons name={isDark ? 'weather-sunny' : 'weather-night'} size={16} color={t.textSub} />
+        <TouchableOpacity style={[s.navBtn, { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }]} onPress={toggle} activeOpacity={0.75}>
+          <MaterialCommunityIcons name={isDark ? 'weather-sunny' : 'weather-night'} size={16} color={t.onHeader} />
         </TouchableOpacity>
-        <TouchableOpacity style={[s.navBtn, { backgroundColor: t.surfaceVar, borderColor: t.border }]} onPress={handleLogout} activeOpacity={0.75}>
-          <MaterialCommunityIcons name="logout-variant" size={16} color={t.textSub} />
+        <TouchableOpacity style={[s.navBtn, { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }]} onPress={handleLogout} activeOpacity={0.75}>
+          <MaterialCommunityIcons name="logout-variant" size={16} color={t.onHeader} />
         </TouchableOpacity>
       </View>
 

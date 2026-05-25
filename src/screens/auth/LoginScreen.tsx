@@ -5,13 +5,18 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AuthStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeMode } from '../../context/ThemeContext';
 import { api } from '../../api';
 import { isValidMobile, sanitizeNumeric } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
+import { getTheme, typography, spacing } from '../../constants/theme';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'> };
 
 export default function LoginScreen({ navigation }: Props) {
+  const { isDark } = useThemeMode();
+  const t = getTheme(isDark);
+
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
@@ -44,40 +49,42 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={s.root}>
+    <SafeAreaView style={[s.root, { backgroundColor: t.primaryDark }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Top brand section */}
+          {/* Hero — government header */}
           <View style={s.hero}>
-            {/* Badge icon */}
-            <View style={s.logoBadge}>
-              <MaterialCommunityIcons name="map-marker-check" size={36} color="#fff" />
+            <View style={[s.logoBadge, { backgroundColor: t.accent }]}>
+              <MaterialCommunityIcons name="shield-check" size={36} color={t.onPrimary} />
             </View>
-            <Text style={s.heroTitle}>SMC Karmachari</Text>
-            <Text style={s.heroSub}>Silchar Municipal Corporation</Text>
-            <Text style={s.heroTagline}>Attendance & Work Tracking</Text>
+            <Text style={[s.heroTitle, { color: t.onPrimary }]}>SMC Karmachari</Text>
+            <Text style={[s.heroSub, { color: t.onHeaderSub }]}>Silchar Municipal Corporation</Text>
+            <View style={[s.heroBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+              <MaterialCommunityIcons name="lock-outline" size={11} color={t.onHeaderSub} />
+              <Text style={[s.heroBadgeText, { color: t.onHeaderSub }]}>Secure Government Portal</Text>
+            </View>
           </View>
 
-          {/* White card */}
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Welcome back</Text>
-            <Text style={s.cardSub}>
+          {/* Card */}
+          <View style={[s.card, { backgroundColor: t.surface }]}>
+            <Text style={[s.cardTitle, { color: t.text }]}>Welcome back</Text>
+            <Text style={[s.cardSub, { color: t.textSub }]}>
               {step === 'mobile'
                 ? 'Enter your registered mobile number to continue'
                 : `OTP sent to +91 ${mobile}`}
             </Text>
 
-            {/* Step 1: Mobile number */}
+            {/* Mobile field */}
             <View style={s.field}>
-              <Text style={s.label}>Mobile Number</Text>
-              <View style={[s.inputWrap, error && step === 'mobile' ? s.inputError : s.inputNormal]}>
-                <Text style={s.countryCode}>+91</Text>
-                <View style={s.inputDivider} />
+              <Text style={[s.label, { color: t.textSub }]}>Mobile Number</Text>
+              <View style={[s.inputWrap, { borderColor: error && step === 'mobile' ? t.errorColor : t.border, backgroundColor: t.surfaceVar }]}>
+                <Text style={[s.countryCode, { color: t.text }]}>+91</Text>
+                <View style={[s.inputDivider, { backgroundColor: t.border }]} />
                 <TextInput
-                  style={s.input}
+                  style={[s.input, { color: t.text }]}
                   placeholder="10-digit mobile number"
-                  placeholderTextColor="#ADB5BD"
+                  placeholderTextColor={t.textMuted}
                   value={mobile}
                   onChangeText={(v) => { setError(''); setMobile(sanitizeNumeric(v).slice(0, 10)); }}
                   keyboardType="numeric"
@@ -85,26 +92,26 @@ export default function LoginScreen({ navigation }: Props) {
                   editable={!loading && step === 'mobile'}
                 />
                 {mobile.length === 10 && (
-                  <MaterialCommunityIcons name="check-circle" size={18} color="#198754" />
+                  <MaterialCommunityIcons name="check-circle" size={18} color={t.success} />
                 )}
               </View>
               {step === 'otp' && (
                 <TouchableOpacity onPress={() => { setStep('mobile'); setOtp(''); setError(''); }} disabled={loading}>
-                  <Text style={s.changeLink}>{Strings.changeMobile}</Text>
+                  <Text style={[s.changeLink, { color: t.accent }]}>{Strings.changeMobile}</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Step 2: OTP input */}
+            {/* OTP field */}
             {step === 'otp' && (
               <View style={s.field}>
-                <Text style={s.label}>{Strings.otpLabel}</Text>
-                <View style={[s.inputWrap, !!error ? s.inputError : s.inputNormal]}>
-                  <MaterialCommunityIcons name="shield-key-outline" size={18} color="#64748B" style={{ marginLeft: 14, marginRight: 12 }} />
+                <Text style={[s.label, { color: t.textSub }]}>{Strings.otpLabel}</Text>
+                <View style={[s.inputWrap, { borderColor: error ? t.errorColor : t.border, backgroundColor: t.surfaceVar }]}>
+                  <MaterialCommunityIcons name="shield-key-outline" size={18} color={t.textMuted} style={{ marginLeft: spacing.md, marginRight: spacing.sm }} />
                   <TextInput
-                    style={s.input}
+                    style={[s.input, { color: t.text }]}
                     placeholder={Strings.otpPlaceholder}
-                    placeholderTextColor="#ADB5BD"
+                    placeholderTextColor={t.textMuted}
                     value={otp}
                     onChangeText={(v) => { setError(''); setOtp(sanitizeNumeric(v)); }}
                     keyboardType="numeric"
@@ -117,39 +124,40 @@ export default function LoginScreen({ navigation }: Props) {
             )}
 
             {!!error && (
-              <View style={s.errorRow}>
-                <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#DC3545" />
-                <Text style={s.errorMsg}>{error}</Text>
+              <View style={[s.errorRow, { backgroundColor: t.errorBg, borderColor: t.errorColor }]}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={14} color={t.errorColor} />
+                <Text style={[s.errorMsg, { color: t.errorColor }]}>{error}</Text>
               </View>
             )}
 
             <TouchableOpacity
-              style={[s.btnPrimary, ((!isMobileValid && step === 'mobile') || loading) && s.btnDisabled]}
+              style={[s.btnPrimary, { backgroundColor: t.primary }, ((!isMobileValid && step === 'mobile') || loading) && s.btnDisabled]}
               onPress={step === 'mobile' ? handleSendOtp : handleVerifyOtp}
               disabled={(!isMobileValid && step === 'mobile') || loading}
               activeOpacity={0.88}
               accessibilityLabel={step === 'mobile' ? Strings.sendOtpButton : Strings.verifyOtpButton}
             >
               {loading
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={s.btnText}>{step === 'mobile' ? Strings.sendOtpButton : Strings.verifyOtpButton}</Text>
+                ? <ActivityIndicator color={t.onPrimary} size="small" />
+                : <Text style={[s.btnText, { color: t.onPrimary }]}>{step === 'mobile' ? Strings.sendOtpButton : Strings.verifyOtpButton}</Text>
               }
             </TouchableOpacity>
 
             {step === 'mobile' && (
               <>
                 <View style={s.orRow}>
-                  <View style={s.orLine} />
-                  <Text style={s.orText}>New to the app?</Text>
-                  <View style={s.orLine} />
+                  <View style={[s.orLine, { backgroundColor: t.border }]} />
+                  <Text style={[s.orText, { color: t.textMuted }]}>New to the app?</Text>
+                  <View style={[s.orLine, { backgroundColor: t.border }]} />
                 </View>
                 <TouchableOpacity
-                  style={s.btnGhost}
+                  style={[s.btnGhost, { borderColor: t.border }]}
                   onPress={() => navigation.navigate('Signup', { mobile })}
                   disabled={loading}
                   activeOpacity={0.85}
+                  accessibilityLabel="Create Account"
                 >
-                  <Text style={s.btnGhostText}>Create Account</Text>
+                  <Text style={[s.btnGhostText, { color: t.textSub }]}>Create Account</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -160,45 +168,41 @@ export default function LoginScreen({ navigation }: Props) {
   );
 }
 
-const ACCENT = '#2563EB';   // modern blue
-const ACCENT_DARK = '#1D4ED8';
-
 const s = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: '#0F172A' },   // slate-900
+  root:          { flex: 1 },
   scroll:        { flexGrow: 1 },
 
   // Hero
-  hero:          { alignItems: 'center', paddingTop: 52, paddingBottom: 40, paddingHorizontal: 24 },
-  logoBadge:     { width: 72, height: 72, borderRadius: 20, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: ACCENT, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 8 },
-  heroTitle:     { fontSize: 26, fontWeight: '800', color: '#F8FAFC', letterSpacing: -0.5 },
-  heroSub:       { fontSize: 13, color: '#94A3B8', marginTop: 4 },
-  heroTagline:   { marginTop: 10, fontSize: 12, color: '#475569', backgroundColor: '#1E293B', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  hero:          { alignItems: 'center', paddingTop: spacing.xxl, paddingBottom: spacing.xl, paddingHorizontal: spacing.lg },
+  logoBadge:     { width: 72, height: 72, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md, elevation: 8 },
+  heroTitle:     { ...typography.display, letterSpacing: -0.5 },
+  heroSub:       { ...typography.caption, marginTop: spacing.xs },
+  heroBadge:     { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: 20 },
+  heroBadgeText: { ...typography.caption },
 
   // Card
-  card:          { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, paddingBottom: 48, gap: 18, flex: 1 },
-  cardTitle:     { fontSize: 22, fontWeight: '700', color: '#0F172A' },
-  cardSub:       { fontSize: 14, color: '#64748B', marginTop: -10 },
+  card:          { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md, flex: 1 },
+  cardTitle:     { ...typography.heading },
+  cardSub:       { ...typography.body, marginTop: -spacing.sm },
 
   // Field
-  field:         { gap: 8 },
-  label:         { fontSize: 13, fontWeight: '600', color: '#374151' },
-  inputWrap:     { flexDirection: 'row', alignItems: 'center', height: 52, borderRadius: 10, borderWidth: 1.5, backgroundColor: '#F8FAFC', paddingRight: 12 },
-  inputNormal:   { borderColor: '#E2E8F0' },
-  inputError:    { borderColor: '#EF4444' },
-  countryCode:   { fontSize: 15, fontWeight: '600', color: '#374151', paddingHorizontal: 14 },
-  inputDivider:  { width: 1, height: 24, backgroundColor: '#E2E8F0', marginRight: 12 },
-  input:         { flex: 1, fontSize: 16, color: '#0F172A' },
-  errorRow:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  errorMsg:      { fontSize: 12, color: '#DC3545' },
+  field:         { gap: spacing.sm },
+  label:         { ...typography.label },
+  inputWrap:     { flexDirection: 'row', alignItems: 'center', height: 52, borderRadius: 10, borderWidth: 1.5, paddingRight: spacing.sm },
+  countryCode:   { ...typography.body, fontWeight: '600', paddingHorizontal: spacing.md },
+  inputDivider:  { width: 1, height: 24, marginRight: spacing.sm },
+  input:         { flex: 1, ...typography.body },
+  changeLink:    { ...typography.caption, alignSelf: 'flex-end', marginTop: spacing.xs },
+  errorRow:      { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: 8, borderWidth: 1 },
+  errorMsg:      { ...typography.caption, flex: 1 },
 
   // Buttons
-  btnPrimary:    { height: 52, backgroundColor: ACCENT, borderRadius: 10, alignItems: 'center', justifyContent: 'center', shadowColor: ACCENT, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  btnDisabled:   { backgroundColor: '#CBD5E1', shadowOpacity: 0, elevation: 0 },
-  btnText:       { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
-  orRow:         { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  orLine:        { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
-  orText:        { fontSize: 13, color: '#94A3B8' },
-  btnGhost:      { height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#E2E8F0' },
-  btnGhostText:  { fontSize: 15, fontWeight: '600', color: '#374151' },
-  changeLink:    { fontSize: 12, color: ACCENT, marginTop: 4, alignSelf: 'flex-end' },
+  btnPrimary:    { height: 56, borderRadius: 10, alignItems: 'center', justifyContent: 'center', elevation: 2 },
+  btnDisabled:   { opacity: 0.45 },
+  btnText:       { ...typography.label, letterSpacing: 0.5 },
+  orRow:         { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  orLine:        { flex: 1, height: 1 },
+  orText:        { ...typography.caption },
+  btnGhost:      { height: 56, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  btnGhostText:  { ...typography.label },
 });
