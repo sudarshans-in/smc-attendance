@@ -35,7 +35,7 @@ function isNotFound(error: unknown): boolean {
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
 export async function sendOtp(mobile: string): Promise<void> {
-  // Backend sends OTP to this mobile number (currently hardcoded to 24052026).
+  // Backend dispatches OTP to this mobile number via SMS.
   // When real SMS is integrated, only the backend changes — no app update needed.
   await client.post('/auth/send-otp', { mobile });
 }

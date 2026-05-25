@@ -1,8 +1,8 @@
 # SMC Karmachari — Security Review
 
-**Version:** 1.0.0
-**Last Updated:** March 2026
-**Scope:** React Native frontend only
+**Version:** 1.1.0
+**Last Updated:** May 2026
+**Scope:** React Native frontend + backend responsibilities
 
 ---
 
@@ -10,6 +10,7 @@
 
 | Actor | Capability | Risk |
 |-------|-----------|------|
+| Remote attacker | Knows any worker's mobile number | **Full login bypass via static OTP (see §2.5)** |
 | Casual attacker | Steals unlocked phone | Access to session data |
 | Network attacker | Intercepts HTTP traffic | Reads API tokens / data |
 | Malicious worker | Abuses app on own device | Marks fake attendance, accesses others' data |
@@ -17,22 +18,36 @@
 
 ---
 
-## 2. Security Findings & Fixes
+## 2. Security Findings & Status
 
-### 2.1 Token & Session Storage — FIXED
+> **Legend:** ✅ Fixed · ⚠️ Open — action required · 🔵 Deferred (accepted risk)
 
-| Before | After |
-|--------|-------|
-| JWT token stored in `AsyncStorage` (unencrypted plaintext on disk) | Stored in `expo-secure-store` → iOS Keychain / Android Keystore (hardware-backed encryption) |
-| User session object stored in `AsyncStorage` | Stored in `expo-secure-store` |
+## 2.0 Summary
 
-**Files changed:** `src/api/client.ts`, `src/context/AuthContext.tsx`
-
-**Why it matters:** AsyncStorage files are readable by anyone with physical access to an unencrypted Android device or a jailbroken iPhone. SecureStore encrypts data with keys tied to the device hardware and the app's identity — other apps and physical attackers cannot read it.
+| # | Severity | Finding | Status |
+|---|----------|---------|--------|
+| 2.1 | HIGH | Token & session storage | ✅ Fixed |
+| 2.2 | MEDIUM | Admin access control | ✅ Fixed |
+| 2.3 | MEDIUM | Input sanitization | ✅ Fixed |
+| 2.4 | LOW | Error handling in API client | ✅ Fixed |
+| **2.5** | **HIGH** | **Static OTP — full auth bypass** | **⚠️ Open** |
 
 ---
 
-### 2.2 Admin Access Control — FIXED
+### 2.1 Token & Session Storage ✅ Fixed
+
+| Before | After |
+|--------|-------|
+| JWT token stored in `AsyncStorage` (unencrypted plaintext on disk) | Stored in `react-native-keychain` → Android Keystore (hardware-backed encryption) |
+| User session object stored in `AsyncStorage` | Stored in `react-native-keychain` |
+
+**Files changed:** `src/api/client.ts`, `src/context/AuthContext.tsx`
+
+**Why it matters:** AsyncStorage files are readable by anyone with physical access to an unencrypted Android device or a jailbroken iPhone. `react-native-keychain` uses the Android Keystore system — keys are hardware-backed and tied to the app's identity. Other apps and physical attackers without root cannot read them.
+
+---
+
+### 2.2 Admin Access Control ✅ Fixed
 
 | Before | After |
 |--------|-------|
@@ -46,7 +61,7 @@
 
 ---
 
-### 2.3 Input Sanitization — FIXED
+### 2.3 Input Sanitization ✅ Fixed
 
 | Input | Before | After |
 |-------|--------|-------|
@@ -62,7 +77,7 @@
 
 ---
 
-### 2.4 Error Handling in API Client — FIXED
+### 2.4 Error Handling in API Client ✅ Fixed
 
 | Before | After |
 |--------|-------|
@@ -70,6 +85,130 @@
 | Error messages could leak internal detail | Response interceptor maps all status codes to safe user-facing messages |
 
 **Files changed:** `src/api/realApi.ts`, `src/api/client.ts`
+
+---
+
+### 2.5 Static OTP — Full Authentication Bypass ⚠️ Open (HIGH)
+
+**Discovered:** May 2026 · **Must fix before production launch**
+
+#### What the problem is
+
+The worker login flow uses a two-step process: `POST /auth/send-otp` (requests OTP) → `POST /auth/login` (verifies OTP). The send-otp step is a **no-op** — it never sends an SMS. The OTP is a static, hardcoded string `"24052026"` on the backend (`WorkerService.STATIC_OTP`). It never changes, never expires, and is not tied to a session or device.
+
+This means **any person who knows a worker's registered mobile number can log in as that worker** by posting the known static OTP to the public `/auth/login` endpoint.
+
+The mobile app's comment in `src/api/realApi.ts` line 38 also embeds the OTP value in the APK bundle:
+
+```ts
+// Backend sends OTP to this mobile number (currently hardcoded to 24052026).
+```
+
+The backend is publicly accessible at `https://world-of-dc-election.onrender.com`. The login endpoint has no rate limiting and no IP restrictions.
+
+#### Impact
+
+- Fraudulent attendance records (fake clock-in / clock-out with real GPS coordinates from spoofed location)
+- Fabricated work photos uploaded on behalf of any worker
+- If a supervisor account (`isAdmin: true`) is compromised, the attacker can enumerate the entire squad
+
+#### Attack path (confirmed)
+
+```
+curl -X POST https://world-of-dc-election.onrender.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"mobile": "<any registered worker number>", "otp": "24052026"}'
+
+# → Returns: { "user": {...}, "token": "<valid JWT>" }
+```
+
+Worker mobile numbers may be publicly discoverable: `/api/tracking/**` is fully unauthenticated on the backend, which likely exposes member phone numbers.
+
+#### Remediation — Backend (primary fix, `world_of_dc`)
+
+The two-step API contract is already correct — only the `sendOtp()` body needs to be replaced:
+
+**Step 1 — Integrate an SMS OTP provider**
+
+The backend `WorkerService.java` `sendOtp()` method is a documented stub:
+
+```java
+public void sendOtp(String mobile) {
+    logger.info("OTP requested for mobile: {} (static OTP in use)", mobile);
+    // TODO: integrate SMS provider here
+}
+```
+
+Replace the body with a real SMS dispatch. Recommended Indian SMS providers:
+- **MSG91** (most common in Indian gov projects) — `https://msg91.com/`
+- **Twilio** — reliable, international, good Java SDK
+- **AWS SNS** — if already using AWS
+
+**Step 2 — Generate and store a per-session OTP server-side**
+
+```java
+// In WorkerService — replace STATIC_OTP with this pattern:
+private static final int OTP_EXPIRY_MINUTES = 5;
+private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
+
+public void sendOtp(String mobile) {
+    String otp = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+    otpStore.put(mobile, new OtpEntry(otp, Instant.now().plusSeconds(OTP_EXPIRY_MINUTES * 60)));
+    smsProvider.send(mobile, "Your SMC Karmachari OTP is: " + otp + ". Valid for 5 minutes.");
+}
+
+public Map<String, Object> login(String mobile, String otp) {
+    OtpEntry entry = otpStore.get(mobile);
+    if (entry == null || Instant.now().isAfter(entry.expiresAt()) || !entry.otp().equals(otp)) {
+        throw new IllegalArgumentException("INVALID_OTP");
+    }
+    otpStore.remove(mobile); // single-use
+    // ... rest of login
+}
+```
+
+For production, replace the in-memory `otpStore` with a MongoDB or Redis-backed TTL store so OTPs survive server restarts.
+
+**Step 3 — Add rate limiting**
+
+Add to `SecurityConfig` or via an NGINX rule:
+- Max 5 OTP send requests per mobile number per 10 minutes
+- Max 5 login attempts per mobile number per 10 minutes
+- Lockout after 10 consecutive failures
+
+#### Remediation — Mobile app (cleanup, `mobile-attendance`)
+
+**Remove the OTP value comment from `src/api/realApi.ts` line 38:**
+
+```ts
+// Before:
+// Backend sends OTP to this mobile number (currently hardcoded to 24052026).
+
+// After:
+// Backend sends OTP via SMS to this mobile number.
+```
+
+**Remove mock code from production bundle** — `src/mock/mockApi.ts` is imported unconditionally and ships in the APK even when `USE_MOCK: false`. Add a Metro config to exclude mock files from release builds:
+
+```js
+// metro.config.js — add to blockList for release builds
+const isRelease = process.env.NODE_ENV === 'production';
+config.resolver.blockList = isRelease
+  ? [/src\/mock\/.*/]
+  : [];
+```
+
+#### Verification checklist
+
+- [ ] Backend: `sendOtp()` dispatches a real SMS to the mobile number
+- [ ] Backend: OTP is randomly generated (6 digits, `SecureRandom`)
+- [ ] Backend: OTP expires after 5 minutes
+- [ ] Backend: OTP is single-use (deleted from store after successful verification)
+- [ ] Backend: `STATIC_OTP` constant removed from `WorkerService.java`
+- [ ] Backend: Rate limiting on `/auth/send-otp` and `/auth/login`
+- [ ] Mobile: OTP value comment removed from `realApi.ts`
+- [ ] Mobile: Mock files excluded from release bundle
+- [ ] Test: Verify that using `"24052026"` as OTP now returns 400 / INVALID_OTP
 
 ---
 
@@ -114,28 +253,33 @@ Photos taken with `expo-image-picker` retain EXIF metadata including the device'
 ## 4. Security Checklist
 
 ### Frontend (this app)
-- [x] Tokens stored in SecureStore (hardware encrypted)
-- [x] User session stored in SecureStore
-- [x] Admin screen has two independent access guards
+- [x] Tokens stored in `react-native-keychain` (Android Keystore, hardware encrypted)
+- [x] User session stored in `react-native-keychain`
+- [x] Admin screen has two independent access guards (navigation + component)
 - [x] Input sanitization on all user-facing text fields
-- [x] Mobile number validated against Indian format
-- [x] Notes field stripped of HTML/script tags
+- [x] Mobile number validated against Indian format (starts with 6–9, 10 digits)
+- [x] Notes field stripped of HTML/script tags, capped at 500 chars
 - [x] Error responses use HTTP status codes, not string matching
-- [x] JWT cleared from SecureStore on logout
+- [x] JWT cleared from Keychain on logout
 - [x] Location permission denied → user-friendly message, no crash
-- [x] Camera/gallery permission denied → user-friendly message, no crash
+- [x] Camera permission denied → user-friendly message, no crash
 - [x] HTTPS enforced via API base URL (no HTTP fallback)
+- [x] Biometric app lock (locks after 30s background, requires biometric/PIN to resume)
+- [ ] **OTP comment removed from `realApi.ts:38`** ← do this now, 1-line fix
+- [ ] **Mock files excluded from release bundle** (see §2.5 Metro config)
 - [ ] Certificate pinning (deferred — see §3.3)
 - [ ] Token expiry check on app resume (deferred — requires refresh token flow)
 
-### Backend (separate team)
+### Backend (`world_of_dc` — must complete before production)
+- [ ] **Real SMS OTP integration — replaces static OTP `"24052026"`** ← HIGH PRIORITY (§2.5)
+- [ ] **Rate limiting on `/auth/send-otp` and `/auth/login`** ← HIGH PRIORITY (§2.5)
+- [ ] **`STATIC_OTP` constant removed from `WorkerService.java`** ← HIGH PRIORITY (§2.5)
 - [ ] Server-side admin role validation on `/admin/*` endpoints
-- [ ] JWT user claim matches request userId
-- [ ] Rate limiting on `/auth/login` and `/auth/signup`
+- [ ] JWT user claim (`sub`) verified against `userId` in request body
 - [ ] Server-side input validation (length, type, format)
-- [ ] MIME type + size validation on photo uploads
+- [ ] MIME type + file size validation on photo uploads
 - [ ] EXIF stripping before photo storage
-- [ ] Short-lived JWTs with refresh token rotation
+- [ ] Short-lived JWTs (8h max) with refresh token rotation
 - [ ] Request logging with device metadata for audit trail
 
 ---
@@ -144,8 +288,27 @@ Photos taken with `expo-image-picker` retain EXIF metadata including the device'
 
 | File | Purpose |
 |------|---------|
-| `src/api/client.ts` | Axios instance, SecureStore token management, error interceptor |
-| `src/context/AuthContext.tsx` | User session in SecureStore, clears both session + token on logout |
+| `src/api/client.ts` | Axios instance, Keychain token management, error interceptor |
+| `src/api/realApi.ts` | Real API calls — **line 38 has OTP comment to remove** |
+| `src/context/AuthContext.tsx` | User session in Keychain, biometric lock logic, clears both session + token on logout |
 | `src/utils/sanitize.ts` | Input sanitization helpers — `sanitizeText`, `sanitizeNotes`, `isValidMobile` |
 | `src/screens/admin/AdminScreen.tsx` | Screen-level `isAdmin` guard (defense in depth) |
 | `src/navigation/AppNavigator.tsx` | Navigation-level `isAdmin` guard (first layer) |
+| `src/navigation/RootNavigator.tsx` | Biometric lock screen — shown when `isAuthenticated && isLocked` |
+| `src/constants/config.ts` | `USE_MOCK` flag — must be `false` in all release builds |
+| `android/app/src/main/AndroidManifest.xml` | Permissions + `allowBackup` — review before Play Store submission |
+
+---
+
+## 6. Backend Integration Notes (for `world_of_dc` team)
+
+When implementing real OTP (§2.5), the mobile app requires no changes to the API contract — only the backend `sendOtp()` body and OTP validation logic change. The two endpoints and their request/response shapes stay the same:
+
+```
+POST /auth/send-otp    { mobile: string }              → 200 OK
+POST /auth/login       { mobile: string, otp: string } → { user: WorkerUserDto, token: string }
+```
+
+The app already handles `400 / INVALID_OTP` responses — they surface as "Invalid OTP" in the login screen.
+
+Worker `userId` is sent explicitly in attendance and photo request bodies by the mobile app. The backend **must** verify that this `userId` matches the `sub` claim in the JWT — otherwise any authenticated worker can mark attendance for any other worker by modifying the request body.

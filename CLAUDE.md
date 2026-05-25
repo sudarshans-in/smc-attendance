@@ -195,6 +195,13 @@ false → sees 3 tabs: Home, Upload, History
 4. **Never hardcode strings in JSX** — use `src/constants/strings.ts`
 5. **Never hardcode colors or theme values** — use `getTheme(isDark)` from `src/constants/theme.ts`
 6. **Never store images as base64** — use file URI (crashes AsyncStorage on old devices)
+7. **`USE_MOCK` must be `false` in every release build** — mock code ships in the bundle but must never be active in production
+
+### Open Security Issue — HIGH (must fix before production)
+
+**Static OTP auth bypass** — the backend uses a hardcoded OTP `"24052026"` that never changes and is never sent via SMS. Any attacker who knows a worker's phone number can log in as that worker. See `doc/security.md §2.5` for the full attack path, backend remediation steps (SMS provider integration), and the verification checklist.
+
+Immediate 1-line fix for the mobile app: remove the OTP comment from `src/api/realApi.ts` line 38.
 
 ---
 
