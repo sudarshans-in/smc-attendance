@@ -27,6 +27,7 @@ export interface AttendanceRecord {
 export interface WorkPhoto {
   id: string;
   userId: string;
+  memberName?: string;
   imageUri: string;
   notes: string;
   location: LocationCoords;

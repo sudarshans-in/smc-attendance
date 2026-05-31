@@ -208,3 +208,14 @@ export async function getTodayAllAttendance(): Promise<AdminWorkerSummary[]> {
     todayAttendance: records.find((r) => r.userId === user.id && r.date === today) ?? null,
   }));
 }
+
+export async function getSquadTodayPhotos(): Promise<WorkPhoto[]> {
+  await delay();
+  const today = getTodayKey();
+  const [users, photos] = await Promise.all([getUsers(), getWorkPhotos()]);
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
+  return photos
+    .filter((p) => p.uploadedAt.startsWith(today))
+    .map((p) => ({ ...p, memberName: userMap.get(p.userId) ?? 'Unknown' }))
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}

@@ -149,3 +149,8 @@ export async function getTodayAllAttendance(): Promise<AdminWorkerSummary[]> {
   const res = await client.get<AdminWorkerSummary[]>('/admin/attendance/today');
   return res.data;
 }
+
+export async function getSquadTodayPhotos(): Promise<WorkPhoto[]> {
+  const res = await client.get<WorkPhoto[]>('/admin/photos/today');
+  return res.data.map(normalizePhoto);
+}
