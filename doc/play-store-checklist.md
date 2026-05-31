@@ -63,21 +63,18 @@ Upload `app-release.aab` to Play Console (not the .apk).
 
 ---
 
-### 3. Privacy Policy URL — NOT done
-Google Play requires a hosted privacy policy for apps that collect:
-- Mobile number (identifier)
-- GPS location (fine location)
-- Camera photos (work evidence)
-- Attendance timestamps
+### 3. Privacy Policy URL ✅ (page created — needs deployment)
+The policy page is hosted at:
+```
+public/privacy-policy.html  (in world_of_dc_ui)
+```
+Once the web UI is deployed, the URL will be:
+```
+https://<web-ui-domain>/privacy-policy.html
+```
+Paste this URL in Play Console → **App Content → Privacy Policy**.
 
-**Action:** Create a privacy policy page (GitHub Pages, Google Sites, or a simple hosted HTML) and paste the URL in Play Console under **App Content → Privacy Policy**.
-
-Minimum content to cover:
-- What data is collected (location, photos, mobile number, attendance)
-- How it is used (municipal attendance tracking by SMC)
-- Who has access (SMC supervisors and DC office officers)
-- Data retention period
-- Contact email for data requests
+Covers: data collected, purpose, access levels, storage security, permissions, retention, and contact.
 
 ---
 
