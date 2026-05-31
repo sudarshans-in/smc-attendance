@@ -1,8 +1,8 @@
 # SMC Karmachari — Security Review
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Last Updated:** May 2026
-**Scope:** React Native frontend + backend responsibilities
+**Scope:** React Native frontend + backend + connection layer
 
 ---
 
@@ -31,6 +31,7 @@
 | 2.3 | MEDIUM | Input sanitization | ✅ Fixed |
 | 2.4 | LOW | Error handling in API client | ✅ Fixed |
 | **2.5** | **HIGH** | **Static OTP — full auth bypass** | **⚠️ Open** |
+| **2.6** | **MEDIUM** | **Unauthenticated photo file download** | **⚠️ Open** |
 
 ---
 
@@ -212,6 +213,40 @@ config.resolver.blockList = isRelease
 
 ---
 
+### 2.6 Unauthenticated Photo File Download ⚠️ Open (MEDIUM)
+
+**Discovered:** May 2026
+
+#### What the problem is
+
+The backend serves uploaded photos at:
+```
+GET /api/files/download/<path>
+```
+
+This endpoint is listed as `permitAll()` in `SecurityConfig.java` — **no JWT required**. Any uploaded photo can be downloaded by anyone who knows its URL path. The path is UUID-based (not guessable), but:
+- A photo URL intercepted from network traffic (e.g. on a shared Wi-Fi) gives permanent read access
+- A compromised worker account could enumerate photo paths from the API and share them externally
+- Photos in the admin view are loaded by the `<Image>` component without an Authorization header
+
+#### Impact
+Work photos and attendance selfies (if wired up) containing GPS-tagged images of field workers and their locations could be accessed without authentication.
+
+#### Remediation — Backend (`world_of_dc`)
+
+Remove `/api/files/download/**` from `permitAll()` in `SecurityConfig.java` and require a valid JWT:
+
+```java
+// Before:
+.antMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
+
+// After: remove the above line — falls through to anyRequest().authenticated()
+```
+
+Alternatively, generate short-lived signed URLs (e.g. 15-minute expiry) for photo access instead of permanent paths.
+
+---
+
 ## 3. Remaining Risks & Responsibilities
 
 ### 3.1 Backend Must Enforce (Frontend Cannot)
@@ -235,18 +270,95 @@ GPS coordinates sent by the app can be spoofed by rooted Android devices using m
 
 This is an inherent limitation of GPS-based attendance on consumer devices.
 
-### 3.3 Certificate Pinning (Not Implemented)
+### 3.3 Certificate Pinning (Not Implemented — Accepted Risk)
 
-SSL certificate pinning would prevent man-in-the-middle attacks even when an attacker installs a custom root CA on the device. It is not implemented because:
-- It adds significant operational overhead (pin must be updated on every certificate renewal)
-- HTTPS alone is sufficient for most threat models
-- Expo managed workflow makes custom native TLS configuration complex
+Certificate pinning would prevent man-in-the-middle attacks even when an attacker installs a custom root CA on the device. It is not implemented because:
+- Render renews TLS certificates automatically — a pinned certificate would break the app on every renewal without an app update
+- Android's default TLS validation (against the system trust store) is sufficient for this threat model
+- Field workers are unlikely to be on corporate MITM proxy networks
 
-Revisit this for production if the app handles financial or medical data.
+Revisit if the app ever handles financial or medical data.
 
 ### 3.4 Photo Metadata (EXIF)
 
-Photos taken with `expo-image-picker` retain EXIF metadata including the device's GPS coordinates embedded in the image file. The backend should strip EXIF data before storing or serving photos to prevent unintended location disclosure.
+Photos taken with `react-native-image-picker` (camera mode) may retain EXIF metadata including device GPS coordinates embedded in the image file. The backend should strip EXIF data before storing or serving photos to prevent unintended location disclosure beyond what is already captured in the attendance record.
+
+---
+
+## 3.5 Connection Security Audit (May 2026)
+
+A full audit of the Android app ↔ Spring Boot backend connection was conducted. Findings below.
+
+### Transport Layer (TLS / HTTPS)
+
+| Check | Result |
+|-------|--------|
+| All API calls use HTTPS | ✅ `https://world-of-dc-election.onrender.com` hardcoded — no HTTP fallback |
+| `android:usesCleartextTraffic` | ✅ Not set — Android 9+ blocks HTTP by default |
+| No cleartext traffic permission in manifest | ✅ Confirmed |
+| TLS certificate issuer | ✅ Google Trust Services (WE1) — trusted globally |
+| Certificate validity | ✅ Valid until Aug 24 2026 (Render auto-renews) |
+| TLS 1.2 | ✅ Supported and working (HTTP 200 confirmed) |
+| TLS 1.3 | ⚠️ Not supported by current Render deployment (connection failed) |
+| SSL bypass code in Android native layer | ✅ None — no `TrustAllCerts`, `ALLOW_ALL_HOSTNAME_VERIFIER`, or custom `X509TrustManager` |
+| SSL bypass code in JS/TS layer | ✅ None — no `rejectUnauthorized: false` or equivalent |
+| Image URI rewriting (`normalizeImageUri`) | ✅ Rewrites `http://localhost:8080/...` to HTTPS base URL before any network call |
+
+**TLS 1.3 note:** TLS 1.2 is still considered secure by NIST, PCI DSS, and Google Play standards. No action required — Render may upgrade its infrastructure automatically over time.
+
+---
+
+### Authentication & Token Security
+
+| Check | Result |
+|-------|--------|
+| JWT signing algorithm | ✅ HS256 (HMAC-SHA256) — standard for single-backend systems |
+| JWT secret in production | ✅ `${JWT_SECRET}` environment variable — not hardcoded |
+| JWT expiry | ✅ 1 hour (`jwt.expiration-ms=3600000`) |
+| Token storage on device | ✅ Android Keystore via `react-native-keychain` — hardware-backed, not extractable without root |
+| Token transmitted as | ✅ `Authorization: Bearer <token>` header on every request |
+| Token cleared on 401 | ✅ Axios interceptor calls `clearToken()` → re-login required |
+| Token cleared on logout | ✅ Both JWT and user session cleared from Keychain |
+| Fallback JWT secret | ⚠️ Defaults to `"change-me-very-secret"` if `JWT_SECRET` not set — ensure Render env var is always set and is 32+ random characters |
+
+---
+
+### On-Device Data Security
+
+| Check | Result |
+|-------|--------|
+| JWT token | ✅ Android Keystore (hardware-backed) |
+| User session object | ✅ Android Keystore (hardware-backed) |
+| Attendance / photo data | ✅ Server-side only in production (`USE_MOCK: false`) |
+| `android:allowBackup` | ✅ `false` — ADB backup and Google Auto Backup blocked |
+| AsyncStorage usage (production) | ✅ None — only used in mock mode |
+| Mock code ships in release bundle | ⚠️ `src/mock/mockApi.ts` is bundled even when `USE_MOCK: false`. Add Metro blockList to exclude it (see §2.5) |
+
+---
+
+### CORS Policy (Backend)
+
+| Check | Result |
+|-------|--------|
+| `allowedOrigins` | ⚠️ `"*"` — any web origin can call the API from a browser |
+| Impact on mobile app | ✅ None — CORS is a browser security concept, not enforced in React Native |
+| Impact on web endpoints | ⚠️ Any website can make cross-origin requests to protected endpoints using a user's browser cookies/tokens |
+
+**Recommendation:** Restrict `allowedOrigins` to the DC office web UI domain once it has a fixed deployment URL.
+
+---
+
+### Overall Connection Security Rating
+
+| Layer | Rating | Notes |
+|-------|--------|-------|
+| Transport (HTTPS/TLS) | **Strong** | TLS 1.2 with trusted CA, no cleartext, no bypass |
+| Token handling | **Strong** | Hardware Keystore, 1h expiry, auto-cleared on 401 |
+| On-device storage | **Strong** | Keystore + allowBackup=false |
+| Authentication logic | **Weak** | Static OTP undermines all transport security (§2.5) |
+| File download endpoint | **Gap** | No auth required to download any photo by URL (§2.6) |
+| CORS policy | **Permissive** | Acceptable for now; tighten before adding sensitive browser-facing features |
+| Certificate pinning | **Not implemented** | Accepted risk — see §3.3 |
 
 ---
 
@@ -274,8 +386,11 @@ Photos taken with `expo-image-picker` retain EXIF metadata including the device'
 - [ ] **Real SMS OTP integration — replaces static OTP `"24052026"`** ← HIGH PRIORITY (§2.5)
 - [ ] **Rate limiting on `/auth/send-otp` and `/auth/login`** ← HIGH PRIORITY (§2.5)
 - [ ] **`STATIC_OTP` constant removed from `WorkerService.java`** ← HIGH PRIORITY (§2.5)
+- [ ] **Require JWT on `/api/files/download/**`** ← MEDIUM PRIORITY (§2.6)
 - [ ] Server-side admin role validation on `/admin/*` endpoints
 - [ ] JWT user claim (`sub`) verified against `userId` in request body
+- [ ] Restrict CORS `allowedOrigins` to specific DC web UI domain (§3.5)
+- [ ] Ensure `JWT_SECRET` env var is 32+ random characters on Render (§3.5)
 - [ ] Server-side input validation (length, type, format)
 - [ ] MIME type + file size validation on photo uploads
 - [ ] EXIF stripping before photo storage
