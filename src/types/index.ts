@@ -52,7 +52,6 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  Signup: { mobile: string };
 };
 
 export type AppTabParamList = {

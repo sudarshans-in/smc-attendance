@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AuthStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -11,9 +10,9 @@ import { isValidMobile, sanitizeNumeric } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
 import { getTheme, typography, spacing } from '../../constants/theme';
 
-type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'> };
+type Props = { navigation: any };
 
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation: _navigation }: Props) {
   const { isDark } = useThemeMode();
   const t = getTheme(isDark);
 
@@ -41,7 +40,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       const user = await api.loginUser(mobile, otp.trim());
       if (user) await login(user);
-      else navigation.navigate('Signup', { mobile });
+      else setError('Mobile number not registered. Contact your supervisor to be added.');
     } catch (e: any) {
       setError(e?.message === 'INVALID_OTP' ? Strings.otpIncorrect : Strings.errorGeneric);
     }
@@ -144,22 +143,12 @@ export default function LoginScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             {step === 'mobile' && (
-              <>
-                <View style={s.orRow}>
-                  <View style={[s.orLine, { backgroundColor: t.border }]} />
-                  <Text style={[s.orText, { color: t.textMuted }]}>New to the app?</Text>
-                  <View style={[s.orLine, { backgroundColor: t.border }]} />
-                </View>
-                <TouchableOpacity
-                  style={[s.btnGhost, { borderColor: t.border }]}
-                  onPress={() => navigation.navigate('Signup', { mobile })}
-                  disabled={loading}
-                  activeOpacity={0.85}
-                  accessibilityLabel="Create Account"
-                >
-                  <Text style={[s.btnGhostText, { color: t.textSub }]}>Create Account</Text>
-                </TouchableOpacity>
-              </>
+              <View style={[s.infoRow, { backgroundColor: t.infoBg }]}>
+                <MaterialCommunityIcons name="information-outline" size={14} color={t.infoColor} />
+                <Text style={[s.infoText, { color: t.infoColor }]}>
+                  Accounts are created by your supervisor. Contact the SMC office if you are not yet registered.
+                </Text>
+              </View>
             )}
           </View>
         </ScrollView>
@@ -200,9 +189,6 @@ const s = StyleSheet.create({
   btnPrimary:    { height: 56, borderRadius: 10, alignItems: 'center', justifyContent: 'center', elevation: 2 },
   btnDisabled:   { opacity: 0.45 },
   btnText:       { ...typography.label, letterSpacing: 0.5 },
-  orRow:         { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  orLine:        { flex: 1, height: 1 },
-  orText:        { ...typography.caption },
-  btnGhost:      { height: 56, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
-  btnGhostText:  { ...typography.label },
+  infoRow:       { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.sm, borderRadius: 8 },
+  infoText:      { ...typography.caption, flex: 1, lineHeight: 18 },
 });
