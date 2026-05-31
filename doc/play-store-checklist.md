@@ -17,49 +17,38 @@
 
 ## 🔴 Blockers
 
-### 1. Release Keystore — NOT done
-The release build is currently signed with `debug.keystore`. Play Store rejects debug-signed builds.
-**The key you upload is permanent for this app ID — never lose it.**
+### 1. Release Keystore ✅ Done
+Keystore generated and wired into `build.gradle` via `android/keystore.properties`.
 
-```bash
-# Generate once, store the .keystore file safely (outside the repo)
-keytool -genkey -v -keystore smc-karmachari-release.keystore \
-  -alias smc-karmachari -keyalg RSA -keysize 2048 -validity 10000
-```
+**Critical files — keep these safe, never share or commit:**
+- `android/app/smc-karmachari-release.keystore` — the keystore file
+- `android/keystore.properties` — contains passwords
 
-Then add to `android/app/build.gradle`:
-```gradle
-signingConfigs {
-    release {
-        storeFile     file('/path/to/smc-karmachari-release.keystore')
-        storePassword System.getenv("KEYSTORE_PASS")
-        keyAlias      'smc-karmachari'
-        keyPassword   System.getenv("KEY_PASS")
-    }
-}
-buildTypes {
-    release {
-        signingConfig signingConfigs.release
-        ...
-    }
-}
-```
+Both are in `.gitignore`. Back them up outside the repo (USB drive, password manager).
 
-Store passwords in environment variables, never commit them.
+Key details:
+- Alias: `smc-karmachari`
+- Algorithm: RSA 2048-bit
+- Validity: 10,000 days (~27 years)
+- Organisation: Silchar Municipal Corporation, Assam, IN
 
 ---
 
-### 2. Android App Bundle (.aab) — NOT done
-Since August 2021, Google Play **requires** new apps as `.aab`, not `.apk`.
+### 2. Android App Bundle (.aab) ✅ Done
+Bundle built and signed with the release keystore.
 
+```
+android/app/build/outputs/bundle/release/app-release.aab  (23 MB)
+```
+
+Upload this file to Play Console (not the .apk).
+
+To rebuild:
 ```bash
 nvm use 20
 export PATH="$(dirname $(which node)):$PATH"
 cd android && ./gradlew bundleRelease
-# Output: android/app/build/outputs/bundle/release/app-release.aab
 ```
-
-Upload `app-release.aab` to Play Console (not the .apk).
 
 ---
 
