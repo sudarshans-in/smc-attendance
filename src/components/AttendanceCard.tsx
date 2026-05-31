@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { Text, Button, Card, Chip, ActivityIndicator } from 'react-native-paper';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AttendanceRecord, AttendanceStatus } from '../types';
-import { Colors } from '../constants/colors';
+import { useThemeMode } from '../context/ThemeContext';
+import { getTheme } from '../constants/theme';
 import { Strings } from '../constants/strings';
 
 interface Props {
@@ -14,222 +14,116 @@ interface Props {
   loading: boolean;
 }
 
-function formatTime(iso: string | null): string {
-  if (!iso) return '--:--';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-}
+const fmtTime = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--';
 
 export default function AttendanceCard({ attendance, status, onMarkLogin, onMarkLogout, loading }: Props) {
+  const { isDark } = useThemeMode();
+  const t = getTheme(isDark);
+
   return (
-    <Card style={styles.card} elevation={2}>
-      <Card.Content>
-        <View style={styles.headerRow}>
-          <MaterialCommunityIcons name="clipboard-check-outline" size={24} color={Colors.primary} />
-          <Text variant="titleMedium" style={styles.headerText}>
-            {Strings.attendanceStatus}
-          </Text>
-          {status !== 'not_started' && (
-            <Chip
-              mode="flat"
-              style={[styles.statusChip, status === 'completed' ? styles.chipCompleted : styles.chipActive]}
-              textStyle={styles.chipText}
-              compact
-            >
-              {status === 'completed' ? Strings.attendanceComplete : Strings.attendanceLoginDone}
-            </Chip>
-          )}
+    <View style={[s.card, { backgroundColor: t.surface, borderColor: t.border }]}>
+      {/* Header badge row */}
+      <View style={[s.cardHeader, { borderBottomColor: t.divider }]}>
+        <View style={[s.headerIcon, { backgroundColor: t.successBg }]}>
+          <MaterialCommunityIcons name="clipboard-check-outline" size={18} color={t.success} />
         </View>
-
-        {(status === 'logged_in' || status === 'completed') && (
-          <>
-            <View style={styles.photoRow}>
-              <View style={styles.photoBlock}>
-                <Text variant="bodySmall" style={styles.photoLabel}>
-                  <MaterialCommunityIcons name="login" size={12} color={Colors.success} /> Check-in
-                </Text>
-                {attendance?.loginPhotoUri ? (
-                  <Image
-                    source={{ uri: attendance.loginPhotoUri }}
-                    style={styles.attendancePhoto}
-                    accessibilityLabel="Check-in photo"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.attendancePhoto, styles.photoPlaceholder]} />
-                )}
-              </View>
-              <View style={styles.photoBlock}>
-                <Text variant="bodySmall" style={styles.photoLabel}>
-                  <MaterialCommunityIcons name="logout" size={12} color={Colors.warning} /> Check-out
-                </Text>
-                {attendance?.logoutPhotoUri ? (
-                  <Image
-                    source={{ uri: attendance.logoutPhotoUri }}
-                    style={styles.attendancePhoto}
-                    accessibilityLabel="Check-out photo"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.attendancePhoto, styles.photoPlaceholder]} />
-                )}
-              </View>
-            </View>
-            <View style={styles.timeRow}>
-              <View style={styles.timeBlock}>
-                <MaterialCommunityIcons name="login" size={20} color={Colors.success} />
-                <Text variant="bodySmall" style={styles.timeLabel}>{Strings.loginTime}</Text>
-                <Text variant="titleMedium" style={styles.timeValue}>
-                  {formatTime(attendance?.loginTime ?? null)}
-                </Text>
-              </View>
-              <View style={styles.timeDivider} />
-              <View style={styles.timeBlock}>
-                <MaterialCommunityIcons name="logout" size={20} color={Colors.warning} />
-                <Text variant="bodySmall" style={styles.timeLabel}>{Strings.logoutTime}</Text>
-                <Text variant="titleMedium" style={styles.timeValue}>
-                  {formatTime(attendance?.logoutTime ?? null)}
-                </Text>
-              </View>
-            </View>
-          </>
+        <Text style={[s.cardHeaderTitle, { color: t.text }]}>{Strings.attendanceStatus}</Text>
+        {status === 'logged_in' && (
+          <View style={[s.statusPill, { backgroundColor: '#FFF3CD', borderColor: '#FFECB5' }]}>
+            <View style={[s.statusDot, { backgroundColor: '#856404' }]} />
+            <Text style={[s.statusPillText, { color: '#856404' }]}>IN PROGRESS</Text>
+          </View>
         )}
+        {status === 'completed' && (
+          <View style={[s.statusPill, { backgroundColor: t.successBg, borderColor: '#A3CFBB' }]}>
+            <View style={[s.statusDot, { backgroundColor: t.success }]} />
+            <Text style={[s.statusPillText, { color: t.successText }]}>COMPLETE</Text>
+          </View>
+        )}
+        {status === 'not_started' && (
+          <View style={[s.statusPill, { backgroundColor: isDark ? t.surfaceVar : '#E9ECEF', borderColor: t.border }]}>
+            <View style={[s.statusDot, { backgroundColor: t.textMuted }]} />
+            <Text style={[s.statusPillText, { color: t.textSub }]}>NOT STARTED</Text>
+          </View>
+        )}
+      </View>
 
-        {loading && (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={Colors.primary} />
-            <Text variant="bodyMedium" style={styles.loadingText}>{Strings.fetchingLocation}</Text>
+      <View style={s.cardBody}>
+        {/* Check-in / Check-out time blocks */}
+        {(status === 'logged_in' || status === 'completed') && (
+          <View style={s.timesRow}>
+            <View style={[s.timeBlock, { backgroundColor: t.successBg, borderColor: '#A3CFBB' }]}>
+              <MaterialCommunityIcons name="login" size={14} color={t.success} />
+              <View>
+                <Text style={[s.timeBlockLabel, { color: t.successText }]}>CHECK IN</Text>
+                <Text style={[s.timeBlockValue, { color: t.successText }]}>{fmtTime(attendance?.loginTime ?? null)}</Text>
+              </View>
+            </View>
+            <MaterialCommunityIcons name="arrow-right" size={14} color={t.textMuted} />
+            <View style={[s.timeBlock, { backgroundColor: status === 'completed' ? t.warningBg : t.surfaceVar, borderColor: status === 'completed' ? '#FFECB5' : t.border }]}>
+              <MaterialCommunityIcons name="logout" size={14} color={status === 'completed' ? t.warning : t.textMuted} />
+              <View>
+                <Text style={[s.timeBlockLabel, { color: status === 'completed' ? t.warning : t.textMuted }]}>CHECK OUT</Text>
+                <Text style={[s.timeBlockValue, { color: status === 'completed' ? t.warning : t.textMuted }]}>{fmtTime(attendance?.logoutTime ?? null)}</Text>
+              </View>
+            </View>
           </View>
         )}
 
-        {!loading && status === 'not_started' && (
-          <Button
-            mode="contained"
-            onPress={onMarkLogin}
-            style={[styles.actionButton, { backgroundColor: Colors.success }]}
-            contentStyle={styles.actionButtonContent}
-            labelStyle={styles.actionButtonLabel}
-            icon="map-marker-check"
-            accessibilityLabel={Strings.markAttendance}
-          >
-            {Strings.markAttendance}
-          </Button>
+        {/* Loading */}
+        {loading && (
+          <View style={s.loadingRow}>
+            <ActivityIndicator size="small" color={t.primary} />
+            <Text style={[s.loadingText, { color: t.textSub }]}>{Strings.fetchingLocation}</Text>
+          </View>
         )}
 
-        {!loading && status === 'logged_in' && (
-          <Button
-            mode="contained"
-            onPress={onMarkLogout}
-            style={[styles.actionButton, { backgroundColor: Colors.warning }]}
-            contentStyle={styles.actionButtonContent}
-            labelStyle={styles.actionButtonLabel}
-            icon="map-marker-minus"
-            accessibilityLabel={Strings.markLogout}
-          >
-            {Strings.markLogout}
-          </Button>
+        {/* Not started placeholder */}
+        {!loading && status === 'not_started' && (
+          <View style={[s.emptyState, { backgroundColor: t.surfaceVar, borderColor: t.border }]}>
+            <MaterialCommunityIcons name="calendar-blank-outline" size={32} color={t.textMuted} />
+            <Text style={[s.emptyStateText, { color: t.textSub }]}>No attendance recorded today</Text>
+          </View>
         )}
-      </Card.Content>
-    </Card>
+
+        {/* Check-in button */}
+        {!loading && status === 'not_started' && (
+          <TouchableOpacity style={[s.btn, { backgroundColor: t.primary, shadowColor: t.primary }]} onPress={onMarkLogin} activeOpacity={0.85} accessibilityLabel={Strings.markAttendance}>
+            <MaterialCommunityIcons name="map-marker-check" size={20} color="#fff" />
+            <Text style={s.btnText}>{Strings.markAttendance}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Check-out button */}
+        {!loading && status === 'logged_in' && (
+          <TouchableOpacity style={[s.btn, { backgroundColor: t.checkout, shadowColor: t.checkout }]} onPress={onMarkLogout} activeOpacity={0.85} accessibilityLabel={Strings.markLogout}>
+            <MaterialCommunityIcons name="map-marker-remove-outline" size={20} color="#fff" />
+            <Text style={s.btnText}>{Strings.markLogout}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  headerText: {
-    flex: 1,
-    fontWeight: '600',
-    color: Colors.onSurface,
-  },
-  statusChip: {
-    height: 28,
-  },
-  chipActive: {
-    backgroundColor: Colors.successContainer,
-  },
-  chipCompleted: {
-    backgroundColor: Colors.primaryContainer,
-  },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: 8,
-    padding: 12,
-  },
-  timeBlock: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  timeDivider: {
-    width: 1,
-    backgroundColor: Colors.outlineVariant,
-    marginHorizontal: 8,
-  },
-  timeLabel: {
-    color: Colors.onSurfaceVariant,
-    fontSize: 11,
-  },
-  timeValue: {
-    fontWeight: '700',
-    color: Colors.onSurface,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-  },
-  loadingText: {
-    color: Colors.onSurfaceVariant,
-  },
-  actionButton: {
-    borderRadius: 8,
-  },
-  actionButtonContent: {
-    height: 56,
-  },
-  actionButtonLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  photoBlock: {
-    flex: 1,
-    gap: 4,
-  },
-  photoLabel: {
-    color: Colors.onSurfaceVariant,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  attendancePhoto: {
-    width: '100%',
-    height: 100,
-    borderRadius: 8,
-  },
-  photoPlaceholder: {
-    backgroundColor: Colors.surfaceVariant,
-  },
+const s = StyleSheet.create({
+  card:           { borderRadius: 12, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
+  cardHeader:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 10, borderBottomWidth: 1 },
+  headerIcon:     { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  cardHeaderTitle:{ flex: 1, fontSize: 14, fontWeight: '600' },
+  statusPill:     { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
+  statusDot:      { width: 6, height: 6, borderRadius: 3 },
+  statusPillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  cardBody:       { padding: 16, gap: 12 },
+  timesRow:       { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  timeBlock:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10 },
+  timeBlockLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+  timeBlockValue: { fontSize: 13, fontWeight: '700', marginTop: 2 },
+  loadingRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
+  loadingText:    { fontSize: 14 },
+  emptyState:     { borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, gap: 6 },
+  emptyStateText: { fontSize: 13 },
+  btn:            { height: 52, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, elevation: 3, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 6 },
+  btnText:        { fontSize: 15, fontWeight: '600', color: '#fff' },
 });

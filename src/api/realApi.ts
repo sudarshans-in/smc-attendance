@@ -5,17 +5,28 @@
  * Every function signature is identical to mockApi.ts — switching between
  * mock and real requires only changing USE_MOCK in src/constants/config.ts.
  *
- * Expected API base URL: Config.API_BASE_URL (e.g. https://api.silcharmunicipal.gov.in/safai)
+ * Base URL: https://world-of-dc-election.onrender.com  (no /api prefix)
+ * Backend:  Spring Boot 2.7 · MongoDB Atlas
+ * Source:   https://github.com/Stormtrooper089/world_of_dc
  *
- * Auth flow:
- *   - loginUser / signupUser return a User + token from the backend.
- *   - The token is stored via saveToken() and attached to all subsequent
- *     requests automatically by the axios request interceptor in client.ts.
+ * Known backend issue: WorkPhoto.imageUri is returned as http://localhost:8080/...
+ * normalizeImageUri() replaces this with the real public URL until backend is fixed.
  */
 
 import { AxiosError } from 'axios';
 import client, { saveToken } from './client';
+import { Config } from '../constants/config';
 import { User, AttendanceRecord, WorkPhoto, LocationCoords, AdminWorkerSummary } from '../types';
+
+// Workaround: backend constructs imageUri using localhost instead of the public domain.
+// Replace localhost:8080 with the actual base URL so images load on real devices.
+function normalizeImageUri(uri: string): string {
+  return uri.replace(/^http:\/\/localhost:\d+/, Config.API_BASE_URL);
+}
+
+function normalizePhoto(photo: WorkPhoto): WorkPhoto {
+  return { ...photo, imageUri: normalizeImageUri(photo.imageUri) };
+}
 
 function isNotFound(error: unknown): boolean {
   return (error as AxiosError)?.response?.status === 404;
@@ -23,13 +34,24 @@ function isNotFound(error: unknown): boolean {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
-export async function loginUser(mobile: string): Promise<User | null> {
+export async function sendOtp(mobile: string): Promise<void> {
+  // Backend dispatches OTP to this mobile number via SMS.
+  // When real SMS is integrated, only the backend changes — no app update needed.
+  await client.post('/auth/send-otp', { mobile });
+}
+
+function isUnauthorized(error: unknown): boolean {
+  return (error as AxiosError)?.response?.status === 401;
+}
+
+export async function loginUser(mobile: string, otp: string): Promise<User | null> {
   try {
-    const res = await client.post<{ user: User; token: string }>('/auth/login', { mobile });
+    const res = await client.post<{ user: User; token: string }>('/auth/login', { mobile, otp });
     await saveToken(res.data.token);
     return res.data.user;
   } catch (error: unknown) {
     if (isNotFound(error)) return null;
+    if (isUnauthorized(error)) throw new Error('INVALID_OTP');
     throw error;
   }
 }
@@ -49,50 +71,18 @@ export async function signupUser(data: {
 export async function markAttendanceLogin(
   userId: string,
   location: LocationCoords,
-  imageUri: string
+  _imageUri: string   // photo captured for UX verification; not accepted by this endpoint
 ): Promise<AttendanceRecord> {
-  const formData = new FormData();
-  formData.append('userId', userId);
-  formData.append('latitude', String(location.latitude));
-  formData.append('longitude', String(location.longitude));
-  formData.append('accuracy', String(location.accuracy ?? 0));
-
-  const filename = imageUri.split('/').pop() ?? 'checkin.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
-  formData.append('photo', {
-    uri: imageUri,
-    name: filename,
-    type: ext === 'png' ? 'image/png' : 'image/jpeg',
-  } as any);
-
-  const res = await client.post<AttendanceRecord>('/attendance/login', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await client.post<AttendanceRecord>('/attendance/login', { userId, location });
   return res.data;
 }
 
 export async function markAttendanceLogout(
   userId: string,
   location: LocationCoords,
-  imageUri: string
+  _imageUri: string   // photo captured for UX verification; not accepted by this endpoint
 ): Promise<AttendanceRecord> {
-  const formData = new FormData();
-  formData.append('userId', userId);
-  formData.append('latitude', String(location.latitude));
-  formData.append('longitude', String(location.longitude));
-  formData.append('accuracy', String(location.accuracy ?? 0));
-
-  const filename = imageUri.split('/').pop() ?? 'checkout.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
-  formData.append('photo', {
-    uri: imageUri,
-    name: filename,
-    type: ext === 'png' ? 'image/png' : 'image/jpeg',
-  } as any);
-
-  const res = await client.post<AttendanceRecord>('/attendance/logout', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const res = await client.post<AttendanceRecord>('/attendance/logout', { userId, location });
   return res.data;
 }
 
@@ -140,12 +130,12 @@ export async function uploadWorkPhoto(
   const res = await client.post<WorkPhoto>('/photos/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return res.data;
+  return normalizePhoto(res.data);
 }
 
 export async function getTodayPhotos(userId: string): Promise<WorkPhoto[]> {
   const res = await client.get<WorkPhoto[]>(`/photos/today/${userId}`);
-  return res.data;
+  return res.data.map(normalizePhoto);
 }
 
 // ─── Admin ─────────────────────────────────────────────────────────────────
@@ -158,4 +148,9 @@ export async function getAllWorkers(): Promise<User[]> {
 export async function getTodayAllAttendance(): Promise<AdminWorkerSummary[]> {
   const res = await client.get<AdminWorkerSummary[]>('/admin/attendance/today');
   return res.data;
+}
+
+export async function getSquadTodayPhotos(): Promise<WorkPhoto[]> {
+  const res = await client.get<WorkPhoto[]>('/admin/photos/today');
+  return res.data.map(normalizePhoto);
 }

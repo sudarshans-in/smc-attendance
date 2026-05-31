@@ -1,365 +1,197 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Modal,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
-import { Text, Button, TextInput, Snackbar, Appbar, Chip, Divider } from 'react-native-paper';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, Image, Dimensions, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { sanitizeNotes } from '../../utils/sanitize';
+import { useThemeMode } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { useCamera } from '../../hooks/useCamera';
 import { useLocation } from '../../hooks/useLocation';
 import { api } from '../../api';
+import { sanitizeNotes } from '../../utils/sanitize';
 import { Strings } from '../../constants/strings';
-import { Colors } from '../../constants/colors';
+import { getTheme } from '../../constants/theme';
 import PhotoCard from '../../components/PhotoCard';
+
+const { width: SW, height: SH } = Dimensions.get('window');
 
 export default function UploadScreen() {
   const { user } = useAuth();
+  const { isDark } = useThemeMode();
+  const t = getTheme(isDark);
   const { todayPhotos, addPhoto, setTodayPhotos } = useAppContext();
   const { takePicture } = useCamera();
-  const { coords, loading: locationLoading, error: locationError, fetchLocation, reset: resetLocation } = useLocation();
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!user) return;
-      (async () => {
-        try {
-          const photos = await api.getTodayPhotos(user.id);
-          setTodayPhotos(photos);
-        } catch {
-          // silent fail
-        }
-      })();
-    }, [user])
-  );
+  const { coords, loading: locLoading, error: locError, fetchLocation, reset: resetLoc } = useLocation();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState('');
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const canSubmit = !!imageUri && !!coords && !submitting && !locLoading;
 
-  const canSubmit = !!imageUri && !!coords && !submitting && !locationLoading;
-
-  const handleImageSelected = async (uri: string) => {
-    setImageUri(uri);
-    resetLocation();
-    fetchLocation();
-  };
+  useFocusEffect(useCallback(() => {
+    if (!user) return;
+    api.getTodayPhotos(user.id).then(setTodayPhotos).catch(() => {});
+  }, [user]));
 
   const handleCamera = async () => {
     const uri = await takePicture();
-    if (uri) handleImageSelected(uri);
+    if (uri) { setImageUri(uri); resetLoc(); fetchLocation(); }
   };
 
   const handleSubmit = async () => {
     if (!canSubmit || !user || !coords || !imageUri) return;
     setSubmitting(true);
     try {
-      const photo = await api.uploadWorkPhoto(user.id, imageUri, sanitizeNotes(notes), coords);
-      addPhoto(photo);
+      addPhoto(await api.uploadWorkPhoto(user.id, imageUri, sanitizeNotes(notes), coords));
       setSnackbar(Strings.uploadSuccess);
-      setImageUri(null);
-      setNotes('');
-      resetLocation();
-    } catch {
-      setSnackbar(Strings.uploadError);
-    } finally {
-      setSubmitting(false);
-    }
+      setImageUri(null); setNotes(''); resetLoc();
+    } catch { setSnackbar(Strings.uploadError); }
+    finally { setSubmitting(false); }
   };
 
-  const locationStatusText = () => {
-    if (locationLoading) return Strings.locationFetching;
-    if (locationError) return Strings.locationFailed;
-    if (coords) return Strings.locationReady;
-    return '';
-  };
-
-  const locationStatusColor = () => {
-    if (locationLoading) return Colors.info;
-    if (locationError) return Colors.error;
-    if (coords) return Colors.success;
-    return Colors.onSurfaceVariant;
-  };
-
-  const locationIcon = () => {
-    if (locationLoading) return 'loading';
-    if (locationError) return 'map-marker-off';
-    if (coords) return 'map-marker-check';
-    return 'map-marker-question';
-  };
+  const locColor = locLoading ? t.accent : locError ? t.errorColor : coords ? t.success : t.textMuted;
+  const locIcon  = locLoading ? 'loading' : locError ? 'map-marker-off' : coords ? 'map-marker-check' : 'map-marker-question';
+  const locLabel = locLoading ? Strings.locationFetching : locError ? Strings.locationFailed : coords ? Strings.locationReady : '';
 
   return (
-    <SafeAreaView style={styles.safe} edges={[]}>
-      <Appbar.Header style={styles.appbar} elevated>
-        <Appbar.Content title={Strings.uploadTitle} titleStyle={styles.appbarTitle} />
-      </Appbar.Header>
+    <SafeAreaView style={[s.root, { backgroundColor: t.bg }]} edges={['top']}>
+      {/* Navbar */}
+      <View style={[s.navbar, { backgroundColor: t.headerBg, borderBottomColor: t.headerBorder }]}>
+        <MaterialCommunityIcons name="camera-plus-outline" size={20} color={t.primary} />
+        <Text style={[s.navTitle, { color: t.text }]}>{Strings.uploadTitle}</Text>
+      </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex}
-      >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Camera button */}
-          <Button
-            mode="contained"
-            onPress={handleCamera}
-            style={[styles.cameraButton, { backgroundColor: Colors.primary }]}
-            contentStyle={styles.cameraButtonContent}
-            labelStyle={styles.cameraButtonLabel}
-            icon="camera"
-            disabled={submitting}
-            accessibilityLabel={Strings.takePhoto}
-          >
-            {Strings.takePhoto}
-          </Button>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Image preview */}
-          {imageUri ? (
-            <View style={styles.previewContainer}>
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.preview}
-                resizeMode="cover"
-                accessibilityLabel={Strings.photoPreviewAlt}
-              />
-              {locationStatusText() !== '' && (
-                <Chip
-                  icon={locationIcon()}
-                  style={[styles.locationChip, { backgroundColor: locationStatusColor() + '20' }]}
-                  textStyle={{ color: locationStatusColor(), fontSize: 12, fontWeight: '600' }}
-                  compact
-                >
-                  {locationStatusText()}
-                </Chip>
+          {/* Upload area card */}
+          <View style={[s.uploadCard, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <TouchableOpacity style={[s.cameraBtn, { backgroundColor: t.primary, shadowColor: t.primary }]} onPress={handleCamera} disabled={submitting} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="camera-outline" size={20} color="#fff" />
+              <Text style={s.cameraBtnText}>{Strings.takePhoto}</Text>
+            </TouchableOpacity>
+
+            {imageUri ? (
+              <View style={[s.previewBox, { borderColor: t.border }]}>
+                <Image source={{ uri: imageUri }} style={s.previewImg} resizeMode="cover" />
+                {!!locLabel && (
+                  <View style={[s.locBar, { backgroundColor: t.surfaceVar, borderTopColor: t.border }]}>
+                    <MaterialCommunityIcons name={locIcon as any} size={13} color={locColor} />
+                    <Text style={[s.locText, { color: locColor }]}>{locLabel}</Text>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={[s.placeholder, { borderColor: t.border, backgroundColor: t.surfaceVar }]}>
+                <MaterialCommunityIcons name="image-plus" size={36} color={t.textMuted} />
+                <Text style={[s.placeholderText, { color: t.textMuted }]}>{Strings.noPhotoSelected}</Text>
+              </View>
+            )}
+
+            {/* Notes */}
+            <View style={s.field}>
+              <Text style={[s.label, { color: t.textSub }]}>{Strings.notesLabel}</Text>
+              <View style={[s.notesWrap, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <MaterialCommunityIcons name="text-box-outline" size={16} color={t.textSub} style={{ marginTop: 1 }} />
+                <TextInput
+                  style={[s.notesInput, { color: t.text }]}
+                  placeholder={Strings.notesPlaceholder}
+                  placeholderTextColor={t.textMuted}
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  numberOfLines={3}
+                  editable={!submitting}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[s.submitBtn, canSubmit ? { backgroundColor: t.accent } : { backgroundColor: isDark ? t.surfaceVar : '#E9ECEF' }]}
+              onPress={handleSubmit}
+              disabled={!canSubmit}
+              activeOpacity={0.85}
+            >
+              {submitting ? <ActivityIndicator color="#fff" size="small" /> : (
+                <>
+                  <MaterialCommunityIcons name="cloud-upload-outline" size={16} color={canSubmit ? '#fff' : t.textMuted} />
+                  <Text style={[s.submitText, { color: canSubmit ? '#fff' : t.textMuted }]}>{Strings.submitPhoto}</Text>
+                </>
               )}
-            </View>
-          ) : (
-            <View style={styles.placeholderContainer}>
-              <MaterialCommunityIcons name="image-plus" size={48} color={Colors.outline} />
-              <Text variant="bodyMedium" style={styles.placeholderText}>
-                {Strings.noPhotoSelected}
-              </Text>
-            </View>
-          )}
+            </TouchableOpacity>
 
-          {/* Notes */}
-          <TextInput
-            label={Strings.notesLabel}
-            value={notes}
-            onChangeText={setNotes}
-            mode="outlined"
-            multiline
-            numberOfLines={3}
-            style={styles.notes}
-            placeholder={Strings.notesPlaceholder}
-            left={<TextInput.Icon icon="text" />}
-            accessibilityLabel={Strings.notesLabel}
-            disabled={submitting}
-          />
+            {!imageUri && <Text style={[s.hint, { color: t.textMuted }]}>{Strings.uploadHint}</Text>}
+            {imageUri && !coords && !locLoading && <Text style={[s.hint, { color: t.errorColor }]}>{Strings.locationRequiredHint}</Text>}
+          </View>
 
-          {/* Submit */}
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            disabled={!canSubmit}
-            loading={submitting}
-            style={[styles.submitButton, { backgroundColor: Colors.info }]}
-            contentStyle={styles.submitButtonContent}
-            labelStyle={styles.submitButtonLabel}
-            icon="cloud-upload"
-            accessibilityLabel={Strings.submitPhoto}
-          >
-            {Strings.submitPhoto}
-          </Button>
-
-          {!imageUri && (
-            <Text variant="bodySmall" style={styles.hint}>
-              {Strings.uploadHint}
-            </Text>
-          )}
-          {imageUri && !coords && !locationLoading && (
-            <Text variant="bodySmall" style={styles.hintError}>
-              {Strings.locationRequiredHint}
-            </Text>
-          )}
-
-          {/* Uploaded work photos */}
-          <Divider style={styles.divider} />
-          <View style={styles.photosHeader}>
-            <MaterialCommunityIcons name="camera-outline" size={20} color={Colors.onSurface} />
-            <Text variant="titleSmall" style={styles.photosTitle}>
-              {Strings.tabTodayPhotos}
-            </Text>
+          {/* Uploaded photos section */}
+          <View style={s.sectionHeader}>
+            <Text style={[s.sectionTitle, { color: t.text }]}>{Strings.tabTodayPhotos}</Text>
             {todayPhotos.length > 0 && (
-              <Text variant="bodySmall" style={styles.photosCount}>
-                {Strings.photosTodayCount(todayPhotos.length)}
-              </Text>
+              <View style={[s.countPill, { backgroundColor: t.successBg }]}>
+                <Text style={[s.countPillText, { color: t.successText }]}>{todayPhotos.length} uploaded</Text>
+              </View>
             )}
           </View>
+
           {todayPhotos.length === 0 ? (
-            <View style={styles.emptyPhotos}>
-              <MaterialCommunityIcons name="image-off-outline" size={36} color={Colors.outline} />
-              <Text variant="bodyMedium" style={styles.emptyPhotosText}>
-                {Strings.noPhotosToday}
-              </Text>
+            <View style={[s.empty, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <MaterialCommunityIcons name="image-off-outline" size={36} color={t.textMuted} />
+              <Text style={[s.emptyText, { color: t.textMuted }]}>{Strings.noPhotosToday}</Text>
             </View>
-          ) : (
-            todayPhotos.map((photo) => (
-              <PhotoCard key={photo.id} photo={photo} onPress={() => setPreviewUri(photo.imageUri)} />
-            ))
-          )}
+          ) : todayPhotos.map((p) => <PhotoCard key={p.id} photo={p} onPress={() => setPreviewUri(p.imageUri)} />)}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Snackbar
-        visible={!!snackbar}
-        onDismiss={() => setSnackbar('')}
-        duration={3000}
-        action={{ label: 'OK', onPress: () => setSnackbar('') }}
-      >
-        {snackbar}
-      </Snackbar>
+      {!!snackbar && (
+        <View style={[s.snackbar, { backgroundColor: t.snackbar }]}>
+          <Text style={s.snackMsg}>{snackbar}</Text>
+          <TouchableOpacity onPress={() => setSnackbar('')}><Text style={[s.snackAction, { color: t.primaryLight }]}>OK</Text></TouchableOpacity>
+        </View>
+      )}
 
-      {/* Fullscreen photo preview modal */}
-      <Modal
-        visible={!!previewUri}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPreviewUri(null)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setPreviewUri(null)}
-        >
-          {previewUri && (
-            <Image
-              source={{ uri: previewUri }}
-              style={styles.modalImage}
-              resizeMode="contain"
-            />
-          )}
+      <Modal visible={!!previewUri} transparent animationType="fade" onRequestClose={() => setPreviewUri(null)}>
+        <TouchableOpacity style={s.modalBg} activeOpacity={1} onPress={() => setPreviewUri(null)}>
+          {previewUri && <Image source={{ uri: previewUri }} style={{ width: SW, height: SH * 0.8 }} resizeMode="contain" />}
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  flex: { flex: 1 },
-  appbar: { backgroundColor: Colors.surface },
-  appbarTitle: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
-  scroll: { flex: 1 },
-  content: { padding: 16, paddingBottom: 40 },
-  cameraButton: {
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  cameraButtonContent: { height: 56 },
-  cameraButtonLabel: { fontSize: 16, fontWeight: '700' },
-  previewContainer: {
-    marginBottom: 16,
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: 12,
-  },
-  preview: {
-    width: '100%',
-    height: 220,
-    borderRadius: 12,
-  },
-  locationChip: {
-    margin: 8,
-    alignSelf: 'flex-start',
-  },
-  placeholderContainer: {
-    height: 180,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.outlineVariant,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    backgroundColor: Colors.surfaceVariant,
-    gap: 8,
-  },
-  placeholderText: {
-    color: Colors.outline,
-  },
-  notes: {
-    backgroundColor: Colors.surface,
-    marginBottom: 16,
-  },
-  submitButton: {
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  submitButtonContent: { height: 56 },
-  submitButtonLabel: { fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
-  hint: {
-    color: Colors.onSurfaceVariant,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  hintError: {
-    color: Colors.error,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  divider: {
-    marginTop: 24,
-    marginBottom: 20,
-  },
-  photosHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  photosTitle: {
-    flex: 1,
-    fontWeight: '700',
-    color: Colors.onSurface,
-  },
-  photosCount: {
-    color: Colors.onSurfaceVariant,
-  },
-  emptyPhotos: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  emptyPhotosText: {
-    color: Colors.onSurfaceVariant,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalImage: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height * 0.8,
-  },
+const s = StyleSheet.create({
+  root:            { flex: 1 },
+  navbar:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 10, borderBottomWidth: 1 },
+  navTitle:        { fontSize: 16, fontWeight: '700' },
+  scroll:          { padding: 16, paddingBottom: 40, gap: 16 },
+  uploadCard:      { borderRadius: 12, borderWidth: 1, padding: 16, gap: 12 },
+  cameraBtn:       { height: 52, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, elevation: 3, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 6 },
+  cameraBtnText:   { color: '#fff', fontSize: 15, fontWeight: '600' },
+  previewBox:      { borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
+  previewImg:      { width: '100%', height: 200 },
+  locBar:          { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1 },
+  locText:         { fontSize: 12, fontWeight: '500' },
+  placeholder:     { height: 140, borderRadius: 10, borderWidth: 2, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  placeholderText: { fontSize: 13 },
+  field:           { gap: 6 },
+  label:           { fontSize: 13, fontWeight: '600' },
+  notesWrap:       { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 8, paddingHorizontal: 12, paddingTop: 12, gap: 8, minHeight: 80, borderWidth: 1.5 },
+  notesInput:      { flex: 1, fontSize: 14, paddingBottom: 12 },
+  submitBtn:       { height: 52, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  submitText:      { fontSize: 15, fontWeight: '600' },
+  hint:            { fontSize: 12, textAlign: 'center' },
+  sectionHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle:    { fontSize: 15, fontWeight: '700' },
+  countPill:       { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  countPillText:   { fontSize: 12, fontWeight: '600' },
+  empty:           { borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 32, gap: 8 },
+  emptyText:       { fontSize: 14 },
+  snackbar:        { position: 'absolute', bottom: 16, left: 16, right: 16, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 8 },
+  snackMsg:        { flex: 1, color: '#fff', fontSize: 14 },
+  snackAction:     { fontSize: 13, fontWeight: '700' },
+  modalBg:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', alignItems: 'center', justifyContent: 'center' },
 });

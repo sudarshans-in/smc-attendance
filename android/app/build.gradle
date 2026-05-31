@@ -9,7 +9,10 @@ apply plugin: "com.facebook.react"
 react {
     entryFile = file("../../index.js")
     reactNativeDir = file("../../node_modules/react-native")
-codegenDir = file("../../node_modules/@react-native/codegen")
+    codegenDir = file("../../node_modules/@react-native/codegen")
+    // Resolve Node dynamically — works on any machine regardless of nvm version
+    def nodeExecutable = ["bash", "-c", "which node"].execute().text.trim()
+    if (nodeExecutable) { nodeExecutableAndArgs = [nodeExecutable] }
 
     enableBundleCompression = (findProperty('android.enableBundleCompression') ?: false).toBoolean()
 
@@ -61,6 +64,13 @@ codegenDir = file("../../node_modules/@react-native/codegen")
  */
 def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBuilds') ?: false).toBoolean()
 
+// Load release signing config from keystore.properties (never committed to git)
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -97,15 +107,19 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
@@ -121,6 +135,13 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    lint {
+        // lintVitalAnalyzeRelease reads Google Maven index over the network and
+        // fails with "Stale NFS file handle" on this machine. Disable it here;
+        // run `./gradlew lint` separately when you need a full lint report.
+        checkReleaseBuilds false
+        abortOnError false
     }
 }
 

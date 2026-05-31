@@ -5,6 +5,7 @@ export interface User {
   address: string;
   createdAt: string;
   isAdmin: boolean;
+  squadId?: string;
 }
 
 export interface LocationCoords {
@@ -21,13 +22,12 @@ export interface AttendanceRecord {
   logoutTime: string | null;
   loginLocation: LocationCoords | null;
   logoutLocation: LocationCoords | null;
-  loginPhotoUri: string | null;
-  logoutPhotoUri: string | null;
 }
 
 export interface WorkPhoto {
   id: string;
   userId: string;
+  memberName?: string;
   imageUri: string;
   notes: string;
   location: LocationCoords;
@@ -53,7 +53,6 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  Signup: { mobile: string };
 };
 
 export type AppTabParamList = {

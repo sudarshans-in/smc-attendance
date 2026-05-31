@@ -1,6 +1,6 @@
 export const Config = {
-  USE_MOCK: true,
-  API_BASE_URL: 'https://api.silcharmunicipal.gov.in/safai',
+  USE_MOCK: false,
+  API_BASE_URL: 'https://world-of-dc-election.onrender.com',
   MOCK_DELAY_MIN: 300,
   MOCK_DELAY_MAX: 800,
 

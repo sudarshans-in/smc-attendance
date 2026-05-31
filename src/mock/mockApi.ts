@@ -50,8 +50,17 @@ async function saveWorkPhotos(photos: WorkPhoto[]): Promise<void> {
 
 // --- Auth API ---
 
-export async function loginUser(mobile: string): Promise<User | null> {
+// Static OTP for mock — mirrors the backend's hardcoded OTP
+const MOCK_OTP = '24052026';
+
+export async function sendOtp(_mobile: string): Promise<void> {
   await delay();
+  // In mock mode, OTP is always MOCK_OTP — no real SMS sent
+}
+
+export async function loginUser(mobile: string, otp: string): Promise<User | null> {
+  await delay();
+  if (otp !== MOCK_OTP) throw new Error('INVALID_OTP');
   const users = await getUsers();
   return users.find((u) => u.mobile === mobile) ?? null;
 }
@@ -101,6 +110,7 @@ export async function markAttendanceLogin(
     loginLocation: location,
     logoutLocation: null,
     loginPhotoUri: imageUri,
+    logoutPhotoUri: null,
   };
   await saveAttendanceRecords([...records, newRecord]);
   return newRecord;
@@ -197,4 +207,15 @@ export async function getTodayAllAttendance(): Promise<AdminWorkerSummary[]> {
     user,
     todayAttendance: records.find((r) => r.userId === user.id && r.date === today) ?? null,
   }));
+}
+
+export async function getSquadTodayPhotos(): Promise<WorkPhoto[]> {
+  await delay();
+  const today = getTodayKey();
+  const [users, photos] = await Promise.all([getUsers(), getWorkPhotos()]);
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
+  return photos
+    .filter((p) => p.uploadedAt.startsWith(today))
+    .map((p) => ({ ...p, memberName: userMap.get(p.userId) ?? 'Unknown' }))
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 }

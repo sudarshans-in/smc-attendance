@@ -1,11 +1,13 @@
 # SMC Karmachari — API Contract
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Last Updated:** March 2026
-**Base URL:** `https://api.silcharmunicipal.gov.in/safai`
+**Base URL:** `https://world-of-dc-election.onrender.com`
+**Backend:** Java Spring Boot 2.7 · MongoDB Atlas · JWT Auth
+**Source:** https://github.com/Stormtrooper089/world_of_dc
 
-This document defines the REST API contract the mobile app expects.
-The frontend mock layer (`src/mock/mockApi.ts`) implements the same behaviour — use this as the reference for backend development.
+> This document is derived from the actual backend source code.
+> All field names, types, and status codes match the Java DTOs and controllers exactly.
 
 ---
 
@@ -17,59 +19,64 @@ All endpoints except `/auth/login` and `/auth/signup` require:
 Authorization: Bearer <jwt_token>
 ```
 
-The token is returned by login/signup and stored on the device. It is attached to every request automatically by the axios client.
+The token is returned by login/signup, stored in Android Keystore via `react-native-keychain`,
+and attached automatically by the axios request interceptor in `src/api/client.ts`.
+
+**Token expiry:** 1 hour (3600000 ms)
 
 ---
 
 ## Data Models
 
-### User
+### User (`WorkerUserDto`)
 ```json
 {
-  "id": "string",
+  "id": "string (format: mem-XXXXXXXX)",
   "mobile": "string",
   "name": "string",
   "address": "string",
-  "createdAt": "ISO datetime string",
+  "createdAt": "ISO 8601 datetime",
   "isAdmin": "boolean"
 }
 ```
 
-### AttendanceRecord
+### AttendanceRecord (`AttendanceRecordDto`)
 ```json
 {
-  "id": "string",
+  "id": "string (format: userId_YYYY-MM-DD)",
   "userId": "string",
   "date": "YYYY-MM-DD",
-  "loginTime": "ISO datetime string | null",
-  "logoutTime": "ISO datetime string | null",
+  "loginTime": "ISO 8601 datetime | null",
+  "logoutTime": "ISO 8601 datetime | null",
   "loginLocation": "LocationCoords | null",
   "logoutLocation": "LocationCoords | null"
 }
 ```
 
-### WorkPhoto
+> Note: No photo URI fields — attendance records store location + time only.
+
+### WorkPhoto (`WorkPhotoDto`)
 ```json
 {
-  "id": "string",
+  "id": "string (MongoDB ObjectId)",
   "userId": "string",
-  "imageUri": "string (URL to stored image)",
-  "notes": "string",
+  "imageUri": "string (full URL: baseUrl + /api/files/download/...)",
+  "notes": "string | null",
   "location": "LocationCoords",
-  "uploadedAt": "ISO datetime string"
+  "uploadedAt": "ISO 8601 datetime"
 }
 ```
 
-### LocationCoords
+### LocationCoords (`LocationCoordsDto`)
 ```json
 {
-  "latitude": "number",
-  "longitude": "number",
-  "accuracy": "number | null"
+  "latitude": "number (double, required)",
+  "longitude": "number (double, required)",
+  "accuracy": "number (double, optional)"
 }
 ```
 
-### AdminWorkerSummary
+### AdminWorkerSummary (`AdminWorkerSummaryDto`)
 ```json
 {
   "user": "User",
@@ -93,7 +100,7 @@ Login with mobile number.
 { "mobile": "9876543210" }
 ```
 
-**Response 200** — user found
+**Response 200**
 ```json
 {
   "user": { ...User },
@@ -106,7 +113,7 @@ Login with mobile number.
 { "message": "User not found" }
 ```
 
-> App behaviour on 404: redirects to Signup screen with mobile pre-filled.
+> App behaviour on 404: navigates to Signup screen with mobile pre-filled.
 
 ---
 
@@ -121,6 +128,7 @@ Register a new worker.
   "address": "Ward 12, Silchar"
 }
 ```
+> `name` and `address` are optional in the backend DTO but required by the app's signup form validation.
 
 **Response 201**
 ```json
@@ -140,16 +148,16 @@ Register a new worker.
 ### Attendance
 
 #### POST `/attendance/login`
-Mark attendance check-in for today.
+Mark attendance check-in. **JSON body — no file upload.**
 
 **Request**
 ```json
 {
-  "userId": "w001",
+  "userId": "mem-A1B2C3D4",
   "location": {
     "latitude": 24.8333,
     "longitude": 92.7789,
-    "accuracy": 12
+    "accuracy": 12.0
   }
 }
 ```
@@ -159,46 +167,60 @@ Mark attendance check-in for today.
 { ...AttendanceRecord }
 ```
 
+**Response 404** — user not found
+```json
+{ "message": "User not found" }
+```
+
+> Note: Worker status is updated to `ON_DUTY` on successful login.
+
 ---
 
 #### POST `/attendance/logout`
-Mark attendance check-out for today.
+Mark attendance check-out. **JSON body — no file upload.**
 
 **Request**
 ```json
 {
-  "userId": "w001",
+  "userId": "mem-A1B2C3D4",
   "location": {
     "latitude": 24.8340,
     "longitude": 92.7795,
-    "accuracy": 10
+    "accuracy": 10.0
   }
 }
 ```
 
-**Response 200** — updated or already logged out (idempotent)
+**Response 200**
 ```json
 { ...AttendanceRecord }
 ```
 
-**Response 400** — no login exists for today
+**Response 400** — no login found for today
 ```json
 { "message": "No attendance login found for today. Please mark attendance first." }
 ```
+
+**Response 404** — user not found
+```json
+{ "message": "User not found" }
+```
+
+> Note: Worker status is updated to `ACTIVE` on successful logout.
 
 ---
 
 #### GET `/attendance/today/:userId`
 Get today's attendance record for a worker.
 
-**Response 200** — record found
+**Response 200**
 ```json
 { ...AttendanceRecord }
 ```
 
-**Response 404** — no record for today
+**Response 404** — no record today or user not found
 ```json
-{ "message": "No attendance record for today" }
+{ "message": "No attendance record found for today" }
 ```
 
 > App behaviour on 404: treats as `null` (worker hasn't checked in yet).
@@ -206,51 +228,58 @@ Get today's attendance record for a worker.
 ---
 
 #### GET `/attendance/history/:userId`
-Get all attendance records for a worker, sorted newest first.
+Get all attendance records for a worker, newest first.
 
 **Response 200**
 ```json
 [ ...AttendanceRecord ]
 ```
 
+> Returns empty array `[]` if no records exist. Never 404.
+
 ---
 
 ### Work Photos
 
 #### POST `/photos/upload`
-Upload a work progress photo.
-
-**Request** — `multipart/form-data`
+Upload a work progress photo. **multipart/form-data.**
 
 | Field | Type | Required |
 |-------|------|----------|
 | `userId` | string | ✅ |
+| `photo` | file (image/jpeg or image/png, max 10MB) | ✅ |
+| `latitude` | number (as form field) | ✅ |
+| `longitude` | number (as form field) | ✅ |
+| `accuracy` | number (as form field) | optional |
 | `notes` | string | optional |
-| `latitude` | string (number) | ✅ |
-| `longitude` | string (number) | ✅ |
-| `accuracy` | string (number) | optional |
-| `photo` | file (image/jpeg or image/png) | ✅ |
 
 **Response 201**
 ```json
-{ ...WorkPhoto, "imageUri": "https://cdn.../photo.jpg" }
+{
+  ...WorkPhoto,
+  "imageUri": "https://world-of-dc-election.onrender.com/api/files/download/worker-photos/filename.jpg"
+}
 ```
+
+**Response 404** — user not found
 
 ---
 
 #### GET `/photos/today/:userId`
-Get all work photos uploaded today by a worker, sorted newest first.
+Get all work photos uploaded today by a worker, newest first.
 
 **Response 200**
 ```json
 [ ...WorkPhoto ]
 ```
 
+> Returns empty array `[]` if no photos today.
+
 ---
 
 ### Admin
 
-> These endpoints require `isAdmin: true` on the authenticated user. Return 403 otherwise.
+> Requires `ROLE_WORKER_ADMIN` authority in JWT. Workers with `isAdmin: true` are assigned this role.
 
 #### GET `/admin/workers`
 Get all registered workers.
@@ -259,6 +288,8 @@ Get all registered workers.
 ```json
 [ ...User ]
 ```
+
+**Response 403** — not authenticated or missing ROLE_WORKER_ADMIN
 
 ---
 
@@ -275,6 +306,8 @@ Get today's attendance summary for all workers.
 ]
 ```
 
+**Response 403** — not authenticated or missing ROLE_WORKER_ADMIN
+
 ---
 
 ## Error Response Format
@@ -282,36 +315,39 @@ Get today's attendance summary for all workers.
 All errors follow this shape:
 
 ```json
-{
-  "message": "Human-readable error description",
-  "detail": "Optional technical detail"
-}
+{ "message": "Human-readable error description" }
 ```
 
 | HTTP Status | Meaning | App Behaviour |
 |-------------|---------|---------------|
-| 400 | Bad request / validation error | Show error message to user |
+| 400 | Bad request / no login before logout | Show error message to user |
 | 401 | Unauthorized / token expired | Clear token, redirect to Login |
 | 403 | Forbidden (not admin) | Show "No permission" message |
 | 404 | Resource not found | Handle per-endpoint (see above) |
-| 409 | Conflict (duplicate) | Show error message to user |
-| 500+ | Server error | Show "Server error, try again later" |
+| 409 | Conflict (mobile already registered) | Show error message to user |
+| 500 | Server error | Show "Server error, try again later" |
 | Network | No internet / timeout | Show "Check internet connection" |
 
 ---
 
-## Switching from Mock to Real
+## Implementation Notes
+
+| Topic | Detail |
+|-------|--------|
+| Worker ID format | `mem-XXXXXXXX` (auto-generated by backend on signup) |
+| Attendance record ID | `{userId}_{YYYY-MM-DD}` e.g. `mem-A1B2C3D4_2026-03-30` |
+| Date grouping | UTC date — attendance is per calendar day |
+| Photo storage | Server filesystem at `./uploads/worker-photos/` |
+| Photo URL | Full URL embedded in `WorkPhoto.imageUri` response — use directly in `<Image>` |
+| Attendance photos | NOT stored in attendance endpoints. The app captures a selfie for UX verification only; it is not transmitted to the backend. |
+| Admin role | Controlled by `isAdmin` flag on `WorkerUser` entity; granted `ROLE_WORKER_ADMIN` in JWT |
+| JWT expiry | 1 hour — app handles 401 by clearing token and redirecting to Login |
+
+---
+
+## Switching Back to Mock
 
 1. Open `src/constants/config.ts`
-2. Set `USE_MOCK: false`
-3. Set `API_BASE_URL` to the deployed backend URL
+2. Set `USE_MOCK: true`
 
-```ts
-export const Config = {
-  USE_MOCK: false,                                          // ← change this
-  API_BASE_URL: 'https://api.silcharmunicipal.gov.in/safai', // ← and this
-  ...
-};
-```
-
-No other code changes required. All screens call `api.*` which automatically routes to `realApi.ts`.
+No other changes needed. All screens call `api.*` which routes automatically via `src/api/index.ts`.

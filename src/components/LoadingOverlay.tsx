@@ -1,32 +1,22 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
-import { Colors } from '../constants/colors';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { useThemeMode } from '../context/ThemeContext';
+import { getTheme } from '../constants/theme';
 
-interface Props {
-  message?: string;
-}
+interface Props { message?: string; }
 
 export default function LoadingOverlay({ message = 'Loading...' }: Props) {
+  const { isDark } = useThemeMode();
+  const t = getTheme(isDark);
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={Colors.primary} />
-      <Text variant="bodyLarge" style={styles.text}>
-        {message}
-      </Text>
+    <View style={[s.root, { backgroundColor: t.bg }]}>
+      <ActivityIndicator size="large" color={t.primary} />
+      <Text style={[s.msg, { color: t.textSub }]}>{message}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.background,
-    gap: 16,
-  },
-  text: {
-    color: Colors.onSurfaceVariant,
-  },
+const s = StyleSheet.create({
+  root: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  msg:  { fontSize: 16 },
 });
