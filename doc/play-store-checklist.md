@@ -1,184 +1,293 @@
-# SMC Karmachari — Google Play Store Release Checklist
+# SMC Karmachari — Google Play Store Publication Guide
 
-**App ID:** `com.smc.karmachari`
-**Current version:** 1.0.0 (versionCode 1)
-**Last audited:** May 2026
-
----
-
-## Legend
-- ✅ Done
-- 🔧 Code change applied (this session)
-- 🔴 Blocker — cannot submit without this
-- 🟡 Important — fix before real-user rollout
-- 📋 One-time setup in Play Console (no code change)
+**App ID:** `com.smc.karmachari`  
+**App name:** SMC Karmachari  
+**Version:** 1.0.0 (versionCode 1)  
+**AAB:** `android/app/build/outputs/bundle/release/app-release.aab` (23 MB)  
+**Privacy policy:** `https://world-of-dc-election.onrender.com/privacy-policy.html`
 
 ---
 
-## 🔴 Blockers
+## Status at a Glance
 
-### 1. Release Keystore ✅ Done
-Keystore generated and wired into `build.gradle` via `android/keystore.properties`.
-
-**Critical files — keep these safe, never share or commit:**
-- `android/app/smc-karmachari-release.keystore` — the keystore file
-- `android/keystore.properties` — contains passwords
-
-Both are in `.gitignore`. Back them up outside the repo (USB drive, password manager).
-
-Key details:
-- Alias: `smc-karmachari`
-- Algorithm: RSA 2048-bit
-- Validity: 10,000 days (~27 years)
-- Organisation: Silchar Municipal Corporation, Assam, IN
+| Item | Status |
+|------|--------|
+| Release keystore | ✅ Done |
+| Signed .aab bundle | ✅ Done |
+| Privacy policy URL | ✅ Live |
+| Permissions cleaned | ✅ Done |
+| Code minification | ✅ Done |
+| `allowBackup=false` | ✅ Done |
+| Google Developer account | ⬜ You do this |
+| Store assets (icon, screenshots) | ⬜ You do this |
+| Static OTP fix | ⚠️ Before real users |
 
 ---
 
-### 2. Android App Bundle (.aab) ✅ Done
-Bundle built and signed with the release keystore.
+## Phase 1 — Create Google Play Developer Account
 
-```
-android/app/build/outputs/bundle/release/app-release.aab  (23 MB)
-```
+> One-time setup. Takes 1–2 days for verification. Cost: **$25 USD** (one-time, non-refundable).
 
-Upload this file to Play Console (not the .apk).
-
-To rebuild:
-```bash
-nvm use 20
-export PATH="$(dirname $(which node)):$PATH"
-cd android && ./gradlew bundleRelease
-```
-
----
-
-### 3. Privacy Policy URL ✅ (page created — needs deployment)
-The policy page is hosted at:
-```
-public/privacy-policy.html  (in world_of_dc_ui)
-```
-Once the web UI is deployed, the URL will be:
-```
-https://<web-ui-domain>/privacy-policy.html
-```
-Paste this URL in Play Console → **App Content → Privacy Policy**.
-
-Covers: data collected, purpose, access levels, storage security, permissions, retention, and contact.
+- [ ] **1.1** Go to `play.google.com/console`
+- [ ] **1.2** Sign in with a Google account
+  - Use a dedicated organisational account (e.g. `smckarmachari.app@gmail.com`) rather than a personal one — this account owns the app permanently
+- [ ] **1.3** Click **Get started** → choose **Organization** as the account type (not Individual — this is a government/municipal app)
+- [ ] **1.4** Fill in organisation details:
+  - Organisation name: `Silchar Municipal Corporation`
+  - Website: your official SMC website URL (or leave the Render URL)
+  - Address: SMC office address, Silchar, Assam
+- [ ] **1.5** Pay the **$25 registration fee** via credit/debit card
+- [ ] **1.6** Complete **identity verification** — Google may ask for:
+  - Government photo ID (passport, Aadhaar, or driving licence)
+  - A selfie or video confirmation
+  - This step can take **24–48 hours**
+- [ ] **1.7** Accept the **Google Play Developer Distribution Agreement**
+- [ ] **1.8** Account is now active — you'll see the Play Console dashboard
 
 ---
 
-### 4. Static OTP Authentication Bypass — NOT done
-**See `doc/security.md §2.5` for full details.**
+## Phase 2 — Prepare Store Assets
 
-Backend accepts OTP `"24052026"` for any mobile number permanently. Any person who knows a worker's phone number can log in as that worker. Must fix before real workers use the app.
+> Create these before going to Play Console. You cannot save the store listing without them.
 
-**Action:** Integrate a real SMS OTP provider in `WorkerService.java` (`world_of_dc` backend). The two-step API contract (`/auth/send-otp` → `/auth/login`) is already in place — only the `sendOtp()` body needs replacing.
-
----
-
-## 🔧 Code Changes Applied
-
-### 5. Remove Unused Permissions ✅ (applied this session)
-Removed three permissions that were declared but never used (gallery access was intentionally removed from the app):
-- `WRITE_EXTERNAL_STORAGE`
-- `READ_EXTERNAL_STORAGE`
-- `READ_MEDIA_IMAGES`
-
-**File:** `android/app/src/main/AndroidManifest.xml`
-
----
-
-### 6. Fix `allowBackup` + Remove Stale Expo Strings ✅ (applied this session)
-- `android:allowBackup="false"` — prevents ADB and Google Auto Backup of app data
-- Removed leftover Expo strings (`expo_splash_screen_*`) from `strings.xml`
-
-**Files:** `AndroidManifest.xml`, `res/values/strings.xml`
-
----
-
-### 7. Enable Code Minification ✅ (applied this session)
-Enabled R8 minification and resource shrinking for release builds.
-Reduces APK/bundle size and obfuscates the JS bundle.
-
-**File:** `android/gradle.properties`
-
----
-
-## 📋 Play Console Setup (one-time, no code changes)
-
-| Item | Notes |
-|------|-------|
-| App icon (512×512 PNG) | Export from `mipmap-xxxhdpi/ic_launcher.png` and scale up, or regenerate at 512px |
-| Feature graphic (1024×500 PNG) | Banner image shown on store listing — create separately |
-| Phone screenshots (min 2) | Take from physical device or emulator after final build |
-| Short description (≤ 80 chars) | e.g. "GPS attendance & work photo tracking for SMC field workers" |
-| Full description | Explain purpose, features, who it's for |
-| Content rating | Complete the questionnaire → will be rated "Everyone" |
-| Category | `Business` or `Tools` |
-| Privacy policy URL | See blocker #3 above |
-| Target audience | Adults (government employee app) |
-| App access | Explain that login requires an account created by an SMC supervisor |
-
----
-
-## ✅ Already Good — No Action Needed
-
-| Check | Detail |
-|-------|--------|
-| `USE_MOCK: false` | Production API is active |
-| `targetSdkVersion 35` | Meets Play Store requirement (API 34+) |
-| `minSdkVersion 24` (Android 7.0) | ~99% device coverage |
-| Hermes JS engine | Enabled — better performance and startup |
-| HTTPS-only API | `https://world-of-dc-election.onrender.com` |
-| Portrait orientation locked | No landscape edge cases |
-| No `console.log` in source | Clean production output |
-| Package ID `com.smc.karmachari` | Unique, follows reverse-domain convention |
-| App name `SMC Karmachari` | Set in `strings.xml` |
-| Signup removed | Accounts created by supervisor via web UI only |
-| `versionCode 1`, `versionName "1.0.0"` | Valid for first release |
-| `newArchEnabled=false` | Stable React Native architecture |
-
----
-
-## Pre-submission Build Checklist
-
-Run these steps in order before uploading to Play Console:
+### 2.1 App Icon — 512 × 512 PNG
+Generate at 512px from the same icon script:
 
 ```bash
-# 1. Switch to correct Node version
-nvm use 20
-export PATH="$(dirname $(which node)):$PATH"
-
-# 2. Clean previous build
-cd android && ./gradlew clean
-
-# 3. Build the release bundle (not APK)
-./gradlew bundleRelease
-
-# 4. Verify the output exists
-ls -lh app/build/outputs/bundle/release/app-release.aab
-
-# 5. (Optional) Test the release APK on a device first
-./gradlew assembleRelease
-adb install app/build/outputs/apk/release/app-release.apk
+cd /path/to/mobile-attendance
+source /tmp/icon_venv2/bin/activate   # or recreate the venv
+python3 /tmp/generate_icon_v3.py      # edit SIZES to add 512px output
 ```
 
-Verify on device before uploading:
-- [ ] Login works with a real worker mobile number
-- [ ] Attendance mark-in captures GPS and photo
-- [ ] Attendance mark-out works
-- [ ] Work photo upload works
-- [ ] Admin tab shows for admin users, hidden for regular workers
-- [ ] No-squad warning banner shows for unassigned workers
-- [ ] Dark mode toggle works
-- [ ] App locks after 30s in background (biometric unlock)
+Or open `android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png` (192px) in any image editor and upscale to 512×512 with no background — Play Console accepts it.
+
+- [ ] Icon is exactly 512×512 px
+- [ ] PNG format, no transparency (must have solid background)
+- [ ] File size under 1 MB
+
+### 2.2 Feature Graphic — 1024 × 500 PNG
+This is the banner shown at the top of your store listing. Use any image editor (Canva, Figma, etc.):
+
+- Background: `#1A3C6E` (the app's civic blue)
+- App name: **SMC Karmachari** in white, large
+- Tagline: **"GPS Attendance & Work Tracking"** in smaller white text
+- App icon centred or right-aligned
+- No rounded corners — Play Console clips it
+
+- [ ] Feature graphic is exactly 1024×500 px
+- [ ] PNG or JPG, under 1 MB
+
+### 2.3 Phone Screenshots — minimum 2, maximum 8
+Take screenshots from your test device (the APK you already installed):
+
+Suggested screens to capture:
+1. Login screen
+2. Home screen (attendance card — before login)
+3. Home screen (after marking attendance — showing green status)
+4. Upload photo screen
+5. History screen
+6. Admin screen (attendance view)
+7. Admin screen (photo grid)
+
+- [ ] At least 2 screenshots captured
+- [ ] PNG or JPG
+- [ ] Between 320px and 3840px on any side
+- [ ] Aspect ratio between 16:9 and 2:1
+
+### 2.4 Store Description Text
+
+**Short description (max 80 characters):**
+```
+GPS attendance & work photo tracking for SMC field workers
+```
+(58 characters — fits)
+
+**Full description (max 4000 characters):**
+```
+SMC Karmachari is the official attendance and work-tracking app for 
+Silchar Municipal Corporation (SMC) field workers and Safai Karmacharis.
+
+FEATURES FOR FIELD WORKERS
+• Mark daily attendance with GPS location verification
+• Upload work-progress photos with automatic geo-tagging
+• View personal attendance history and work photo log
+• Secure login via mobile number OTP
+
+FEATURES FOR SUPERVISORS
+• View squad attendance status in real time
+• Browse today's work photos uploaded by squad members
+• Tap any photo for full-screen view with uploader name and timestamp
+
+SECURITY
+• All data transmitted over HTTPS (TLS encrypted)
+• Session tokens stored in Android Keystore (hardware-encrypted)
+• Biometric app lock — automatically locks after 30 seconds in background
+
+ACCESS
+This app is for registered SMC employees only. Accounts are created 
+by supervisors through the DC Office web portal. Download the app and 
+contact your supervisor to receive your registered mobile number.
+
+Developed for the Cachar District Office, Government of Assam.
+```
+
+- [ ] Short description written (≤ 80 chars)
+- [ ] Full description written (≤ 4000 chars)
+
+---
+
+## Phase 3 — Create the App in Play Console
+
+- [ ] **3.1** In Play Console, click **Create app**
+- [ ] **3.2** Fill in:
+  - App name: `SMC Karmachari`
+  - Default language: `English (India) - en-IN`
+  - App or game: **App**
+  - Free or paid: **Free**
+- [ ] **3.3** Accept the declarations (no malware, accurate metadata)
+- [ ] **3.4** Click **Create app** — you are now on the app's dashboard
+
+---
+
+## Phase 4 — Store Listing
+
+> Dashboard → **Grow** → **Store presence** → **Main store listing**
+
+- [ ] **4.1** Upload app icon (512×512 PNG)
+- [ ] **4.2** Upload feature graphic (1024×500 PNG)
+- [ ] **4.3** Upload at least 2 phone screenshots
+- [ ] **4.4** Enter short description
+- [ ] **4.5** Enter full description
+- [ ] **4.6** Save — green tick appears on Store listing in the left menu
+
+---
+
+## Phase 5 — App Content & Compliance
+
+> Dashboard → **Policy** → **App content**
+
+Work through each section:
+
+### 5.1 Privacy Policy
+- [ ] Enter URL: `https://world-of-dc-election.onrender.com/privacy-policy.html`
+
+### 5.2 App Access
+- [ ] Select: **All or some functionality is restricted**
+- [ ] Add instructions:
+  ```
+  This app requires an account created by an SMC supervisor.
+  Test credentials: Mobile: 9876543210 | OTP: 24052026
+  (These are test accounts pre-loaded for review purposes)
+  ```
+
+### 5.3 Ads
+- [ ] Select: **No, my app does not contain ads**
+
+### 5.4 Content Rating
+- [ ] Click **Start questionnaire**
+- [ ] Category: **Utilities**
+- [ ] Answer all questions (violence: No, sexual content: No, language: No, etc.)
+- [ ] Submit → rating will be **Everyone (E)**
+
+### 5.5 Target Audience
+- [ ] Age group: **18 and over**
+- [ ] Confirm: app is not designed for children
+
+### 5.6 Data Safety
+This is the most important section — Google will flag if it doesn't match your privacy policy.
+
+- [ ] **Location** → Yes, collected → Approximate + Precise → Required → Not shared with 3rd parties → Encrypted in transit → User can request deletion
+- [ ] **Photos and videos** → Yes, collected → Photos → Required → Not shared → Encrypted → User can request deletion
+- [ ] **Personal info** → Yes → Name, Phone number → Required → Not shared → Encrypted → User can request deletion
+- [ ] **App activity** → Yes → App interactions (attendance records) → Required → Not shared → Encrypted → User can request deletion
+- [ ] No financial info, health info, contacts, SMS, or browser history collected
+- [ ] Save
+
+### 5.7 Government Apps Declaration
+- [ ] If prompted, confirm this is a **government-affiliated app** (municipal corporation)
+
+---
+
+## Phase 6 — Upload the App Bundle
+
+> Dashboard → **Release** → **Testing** → **Internal testing** → **Create new release**
+
+Start with **Internal testing** — fastest review (no Google review required), lets you test the Play Store flow end-to-end before going to production.
+
+- [ ] **6.1** Click **Create new release**
+- [ ] **6.2** Under **App bundles**, click **Upload**
+  - Upload: `android/app/build/outputs/bundle/release/app-release.aab`
+- [ ] **6.3** Play App Signing:
+  - Google will prompt to opt in to **Play App Signing**
+  - **Strongly recommended**: opt in — Google securely stores your upload key and can re-sign if you lose your keystore
+  - Click **Continue** to accept
+- [ ] **6.4** Release name: `1.0.0 (internal test)`
+- [ ] **6.5** Release notes: `Initial internal test build`
+- [ ] **6.6** Click **Save** → **Review release** → **Start rollout to Internal testing**
+
+### 6.7 Add Internal Testers
+- [ ] Go to **Internal testing** → **Testers** tab
+- [ ] Create a tester list with your email addresses
+- [ ] Share the opt-in URL with testers — they install from Play Store directly
+- [ ] Test on real devices, confirm login + attendance + photos work
+
+---
+
+## Phase 7 — Production Release
+
+> Only after internal testing passes. This goes through Google review (1–7 days).
+
+- [ ] **7.1** Go to **Release** → **Production** → **Create new release**
+- [ ] **7.2** Upload the same `.aab` (or rebuild a new one)
+- [ ] **7.3** Release name: `1.0.0`
+- [ ] **7.4** Release notes (shown to users in Play Store):
+  ```
+  Initial release of SMC Karmachari — GPS attendance and work photo 
+  tracking for Silchar Municipal Corporation field workers.
+  ```
+- [ ] **7.5** Roll out to **100%** (it's an internal app with limited user base)
+- [ ] **7.6** Click **Review release** → **Start rollout to Production**
+- [ ] **7.7** Google review typically takes **1–3 days** for new apps
+
+---
+
+## Phase 8 — After Publishing
+
+- [ ] Share the Play Store link with SMC supervisors
+- [ ] Supervisors create worker accounts via the DC web portal before workers install
+- [ ] Workers search `SMC Karmachari` on Play Store or use direct link
+- [ ] Monitor **Android vitals** in Play Console for crashes
+
+### For future updates:
+1. Increment `versionCode` by 1 and update `versionName` in `android/app/build.gradle`
+2. Rebuild: `./gradlew bundleRelease`
+3. Upload new `.aab` to Play Console → Production → Create new release
+
+---
+
+## ⚠️ Before Rolling Out to Real Workers
+
+- [ ] Fix static OTP — integrate real SMS provider (`doc/security.md §2.5`)
+- [ ] Protect photo download endpoint with JWT auth (`doc/security.md §2.6`)
+- [ ] Ensure `JWT_SECRET` on Render is 32+ random characters
+
+---
+
+## Key Files — Keep Backed Up Separately
+
+| File | Why critical |
+|------|-------------|
+| `android/app/smc-karmachari-release.keystore` | Losing this = can never update the app on Play Store |
+| `android/keystore.properties` | Contains keystore passwords |
+
+Back these up to a USB drive and a password manager. They are in `.gitignore` — not in the repo.
 
 ---
 
 ## Version History
 
-| versionCode | versionName | Notes |
-|-------------|-------------|-------|
-| 1 | 1.0.0 | Initial release — internal testing only |
+| versionCode | versionName | Date | Notes |
+|-------------|-------------|------|-------|
+| 1 | 1.0.0 | Jun 2026 | Initial release — internal testing |
 
-*Increment `versionCode` by 1 for every upload to Play Console. `versionName` follows semver.*
+*Every upload to Play Console must increment `versionCode` by at least 1.*
