@@ -94,45 +94,16 @@ Suggested screens to capture:
 - [ ] Between 320px and 3840px on any side
 - [ ] Aspect ratio between 16:9 and 2:1
 
-### 2.4 Store Description Text
+### 2.4 Store Description Text ✅ Done
+All text pre-written and ready to copy-paste. See `assets/store-listing.md`.
 
-**Short description (max 80 characters):**
-```
-GPS attendance & work photo tracking for SMC field workers
-```
-(58 characters — fits)
-
-**Full description (max 4000 characters):**
-```
-SMC Karmachari is the official attendance and work-tracking app for 
-Silchar Municipal Corporation (SMC) field workers and Safai Karmacharis.
-
-FEATURES FOR FIELD WORKERS
-• Mark daily attendance with GPS location verification
-• Upload work-progress photos with automatic geo-tagging
-• View personal attendance history and work photo log
-• Secure login via mobile number OTP
-
-FEATURES FOR SUPERVISORS
-• View squad attendance status in real time
-• Browse today's work photos uploaded by squad members
-• Tap any photo for full-screen view with uploader name and timestamp
-
-SECURITY
-• All data transmitted over HTTPS (TLS encrypted)
-• Session tokens stored in Android Keystore (hardware-encrypted)
-• Biometric app lock — automatically locks after 30 seconds in background
-
-ACCESS
-This app is for registered SMC employees only. Accounts are created 
-by supervisors through the DC Office web portal. Download the app and 
-contact your supervisor to receive your registered mobile number.
-
-Developed for the Cachar District Office, Government of Assam.
-```
-
-- [ ] Short description written (≤ 80 chars)
-- [ ] Full description written (≤ 4000 chars)
+- [x] Short description (58 chars)
+- [x] Full description (~950 chars)
+- [x] Release notes v1.0.0
+- [x] App access instructions for Google reviewer
+- [x] Data Safety form — all answers pre-filled
+- [x] Content rating questionnaire — all answers pre-filled
+- [x] App category: Business
 
 ---
 
